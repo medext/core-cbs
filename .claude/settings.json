@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "bash .claude/hooks/guard-destructive.sh" },
+          { "type": "command", "command": "bash .claude/hooks/guard-secrets.sh" }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "bash .claude/hooks/guard-migrations.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "bash .claude/hooks/format-changed.sh" },
+          { "type": "command", "command": "bash .claude/hooks/lint-changed.sh" }
+        ]
+      }
+    ]
+  }
+}
