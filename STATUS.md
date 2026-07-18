@@ -21,14 +21,14 @@
 | # | Slice | Status |
 |---|---|---|
 | 2.0 | Record Phase 1 approval; ADR-0009 → Accepted; OD-5 confirmed | ✅ done |
-| 2.1 | `tenancy` context: explicit `TenantContext` (contextvar), DB router raising on missing context (no default tenant), resolver strategies (header=dev, static=onprem) + middleware | ⬜ next |
-| 2.2 | `control_plane` context: Tenant registry model (separate control DB), runtime tenant-DB alias registration | ⬜ |
-| 2.3 | Migration fan-out: `migrate_tenants` management command (per-tenant, idempotent, resumable) | ⬜ |
-| 2.4 | `audit` context: append-only AuditEvent (tenant DB), record service w/ correlation IDs, `/api/v1/audit/events` read endpoint (first data-plane route) | ⬜ |
-| 2.5 | `iam` context: OIDC token validation boundary (JWKS, per-tenant issuer/audience), permission registry + DRF permission classes, tenant↔token match enforcement | ⬜ |
-| 2.6 | Profile wiring: saas/onprem DATABASES & INSTALLED_APPS (control plane absent on-prem), compose keycloak (`iam` profile), CI job proving on-prem boots without control plane | ⬜ |
-| 2.7 | Gate test suites: cross-tenant fail-safe, no-implicit-tenant hard errors, concurrent mixed-tenant routing determinism, audit emission, OIDC contract tests | ⬜ |
-| 2.8 | `security-reviewer` subagent on tenancy/IAM diff; docs same-change; gate report → human approval | ⬜ |
+| 2.1 | `tenancy` context: explicit `TenantContext` (contextvar), DB router raising on missing context (no default tenant), resolver strategies (header=dev, static=onprem) + middleware | ✅ done |
+| 2.2 | `control_plane` context: Tenant registry model (separate control DB), runtime tenant-DB alias registration | ✅ done |
+| 2.3 | Migration fan-out: `migrate_tenants` management command (per-tenant, idempotent, resumable) | ✅ done |
+| 2.4 | `audit` context: append-only AuditEvent (tenant DB), record service w/ correlation IDs, `/api/v1/audit/events` read endpoint (first data-plane route) | ✅ done |
+| 2.5 | `iam` context: OIDC token validation boundary (JWKS, per-tenant issuer/audience), permission registry + DRF permission classes, tenant↔token binding via issuer | ✅ done |
+| 2.6 | Profile wiring: saas/onprem DATABASES & INSTALLED_APPS (control plane absent on-prem), compose keycloak (`iam` profile), CI `onprem-boot` job | ✅ done |
+| 2.7 | Gate test suites: cross-tenant fail-safe, no-implicit-tenant hard errors, concurrent mixed-tenant routing determinism, audit emission, OIDC contract tests — **71 tests green, coverage 96%** | ✅ done |
+| 2.8 | `security-reviewer` subagent on tenancy/IAM diff; docs same-change; CI green; gate report → human approval | 🔨 in progress |
 
 ## Phase 1 slice backlog (✅ complete, gate approved 2026-07-18)
 

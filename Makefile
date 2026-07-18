@@ -54,8 +54,10 @@ test-db-start:
 	@mkdir -p $(TEST_DB_DIR) && { [ -z "$(PG_RUN)" ] || chown postgres:postgres $(TEST_DB_DIR); }
 	@test -f $(TEST_DB_DIR)/PG_VERSION || $(PG_RUN) $(PG_BIN)/initdb -D $(TEST_DB_DIR) -U nextcore -A trust >/dev/null
 	@$(PG_RUN) $(PG_BIN)/pg_ctl -D $(TEST_DB_DIR) -o "-p $(TEST_DB_PORT) -k /tmp" -l $(TEST_DB_DIR)/log start
-	@$(PG_RUN) $(PG_BIN)/createdb -h 127.0.0.1 -p $(TEST_DB_PORT) -U nextcore next_core_dev 2>/dev/null || true
-	@echo "PostgreSQL ready on port $(TEST_DB_PORT) (db: next_core_dev, user: nextcore)"
+	@for db in next_core_dev next_core_ta next_core_tb; do \
+		$(PG_RUN) $(PG_BIN)/createdb -h 127.0.0.1 -p $(TEST_DB_PORT) -U nextcore $$db 2>/dev/null || true; \
+	done
+	@echo "PostgreSQL ready on port $(TEST_DB_PORT) (dbs: next_core_dev + tenant test dbs, user: nextcore)"
 
 test-db-stop:
 	@$(PG_RUN) $(PG_BIN)/pg_ctl -D $(TEST_DB_DIR) stop >/dev/null 2>&1 || true

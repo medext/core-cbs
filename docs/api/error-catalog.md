@@ -30,6 +30,7 @@
 | Code | Category | Retryable | Notes |
 |---|---|---|---|
 | `VALIDATION_ERROR` | 400 | No | With `errors[]` field details |
+| `TENANT_RESOLUTION_FAILED` | 400 | No | Missing/invalid/unknown/inactive tenant — hard failure, never a fallback (implemented Phase 2) |
 | `AUTHENTICATION_REQUIRED` / `TOKEN_EXPIRED` | 401 | After refresh | |
 | `PERMISSION_DENIED` | 403 | No | Function-level |
 | `RESOURCE_NOT_FOUND` | 404 | No | Also masks cross-tenant existence |

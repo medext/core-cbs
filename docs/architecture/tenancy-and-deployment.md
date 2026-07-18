@@ -46,7 +46,15 @@ flowchart LR
     WRK --> T1 & T2 & TN
 ```
 
-### Tenant context & routing (Phase 2)
+### Tenant context & routing (implemented Phase 2 — modules in `src/next_core/tenancy/`)
+
+Implementation map: `context.py` (contextvar `TenantContext`, no-default guarantee),
+`router.py` (plane-separating DB router that **raises** on unscoped data-plane access),
+`directory.py` (control-plane vs. static lookup + runtime alias registration),
+`middleware.py` (boundary resolution, hard 400 `TENANT_RESOLUTION_FAILED`),
+`management/commands/migrate_tenants.py` (fan-out). Current resolver strategies: `header`
+(dev/test/staging behind a trusted gateway) and `static` (on-premise); production SaaS
+host-/claim-based resolution lands with public routing (tracked as OD-21).
 
 - `TenantContext` is established exactly once per request/job from explicit inputs (host/
   path/token claim per deployment config), validated against the tenant registry, and passed

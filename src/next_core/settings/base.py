@@ -23,15 +23,34 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "rest_framework",
     "next_core.platform.health",
+    "next_core.tenancy",
+    "next_core.iam",
+    "next_core.audit",
+    # control_plane is added by SaaS-family profiles only; absent on-premise (ADR-0005).
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "next_core.platform.logging.CorrelationIdMiddleware",
+    "next_core.tenancy.middleware.TenantContextMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+DATABASE_ROUTERS = ["next_core.tenancy.router.TenantDatabaseRouter"]
+
+# Tenancy (see docs/architecture/tenancy-and-deployment.md)
+NEXT_CORE_DATA_PLANE_APPS = ("audit",)
+NEXT_CORE_TENANT_RESOLVER = env("NEXT_CORE_TENANT_RESOLVER", default="header")
+NEXT_CORE_TENANT_DIRECTORY = env("NEXT_CORE_TENANT_DIRECTORY", default="control")
+
+# IAM boundary (ADR-0008): issuer is realm-per-tenant; audience fixed per deployment.
+OIDC_ISSUER_TEMPLATE = env("OIDC_ISSUER_TEMPLATE", default="")
+OIDC_AUDIENCE = env("OIDC_AUDIENCE", default="next-core")
+OIDC_JWKS_URL_TEMPLATE = env(
+    "OIDC_JWKS_URL_TEMPLATE", default="{issuer}/protocol/openid-connect/certs"
+)
 
 ROOT_URLCONF = "next_core.urls"
 WSGI_APPLICATION = "next_core.wsgi.application"
@@ -59,6 +78,8 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     # Deny by default; endpoints opt in explicitly (health endpoints are plain Django views).
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAdminUser"],
+    "DEFAULT_PAGINATION_CLASS": "next_core.platform.api.BoundedPageNumberPagination",
+    "PAGE_SIZE": 50,
 }
 
 LANGUAGE_CODE = "en"

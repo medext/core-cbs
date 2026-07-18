@@ -58,6 +58,11 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync
+      - name: Create tenant test databases
+        run: |
+          for db in next_core_ta next_core_tb; do
+            PGPASSWORD=nextcore-ci createdb -h 127.0.0.1 -p 5433 -U nextcore "$db" || true
+          done
       - name: pytest + coverage
         run: |
           uv run coverage run -m pytest tests
@@ -99,6 +104,61 @@ jobs:
         run: |
           docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:latest \
             detect --source /repo --log-opts="--all" --redact --exit-code 1
+
+  onprem-boot:
+    name: On-premise profile boots without control plane
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nextcore
+          POSTGRES_PASSWORD: nextcore-ci
+          POSTGRES_DB: next_core_onprem
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U nextcore"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      NEXT_CORE_PROFILE: onprem
+      DJANGO_SETTINGS_MODULE: next_core.settings.onprem
+      DJANGO_SECRET_KEY: ci-onprem-boot-only
+      DJANGO_ALLOWED_HOSTS: 127.0.0.1,localhost
+      DJANGO_SECURE_SSL_REDIRECT: "false"
+      DATABASE_URL: postgres://nextcore:nextcore-ci@127.0.0.1:5433/next_core_onprem
+      NEXT_CORE_TENANT_ID: 7e6a6a1e-96b8-4dc0-a1a2-3c1f6f6b0001
+      NEXT_CORE_TENANT_SLUG: mainbank
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync
+      - name: Control plane must be absent
+        run: |
+          uv run python -c "
+          import django; django.setup()
+          from django.conf import settings
+          assert not any('control_plane' in a for a in settings.INSTALLED_APPS)
+          print('control plane absent: OK')"
+      - name: Migrate (control alias + tenant fan-out, static directory)
+        run: |
+          uv run python manage.py migrate --noinput
+          uv run python manage.py migrate_tenants
+      - name: Serve and assert health + tenant-scoped route
+        run: |
+          uv run gunicorn next_core.wsgi:application --bind 127.0.0.1:8010 --daemon
+          for i in $(seq 1 15); do
+            curl -sf http://127.0.0.1:8010/health/ready && break || sleep 2
+          done
+          curl -sf http://127.0.0.1:8010/health/ready
+          # Data plane serves without control plane: unauthenticated request on the
+          # tenant-scoped route must be a clean 401 (resolved tenant, missing token).
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8010/api/v1/audit/events)
+          test "$code" = "401" || { echo "expected 401, got $code"; exit 1; }
+          echo "onprem serves data plane without control plane: OK"
 
   compose-smoke:
     name: Compose runtime smoke (app + postgres + redis)

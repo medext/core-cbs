@@ -56,6 +56,8 @@ def test_onprem_profile_forces_debug_off() -> None:
             "DJANGO_ALLOWED_HOSTS": "bank.internal",
             "DATABASE_URL": "postgres://u@h/db",
             "DJANGO_DEBUG": "true",
+            "NEXT_CORE_TENANT_ID": "7e6a6a1e-96b8-4dc0-a1a2-3c1f6f6b0001",
+            "NEXT_CORE_TENANT_SLUG": "mainbank",
         },
     )
     assert result.returncode == 0, result.stderr

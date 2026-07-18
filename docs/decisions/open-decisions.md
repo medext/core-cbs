@@ -30,6 +30,9 @@ decision) · `Deferred` (explicitly later, with trigger).
 | OD-16 | BLNK matrix re-validation against live docs | **Open** | Build environment could not reach docs.blnkfinance.com; matrix built from Jan-2026 project knowledge. Re-validate (incl. llms.txt) before Phase 3 gate. | Eng | Phase 3 |
 | OD-17 | Back-office UI scope (Django admin vs. dedicated ops UI) | **Assumption** | MVP: guarded Django admin + ops APIs; no financial mutations via admin. Dedicated ops UI is post-R2 product work. | Human | Phase 6 |
 | OD-18 | Per-tenant Keycloak realm vs. instance in shared SaaS | **Recommended** | Realm-per-tenant initially; dedicated instances for dedicated-SaaS. Validate realm-count operability in Phase 9. | Eng | Phase 9 |
+| OD-19 | Tenant DSN storage in control-plane registry | **Assumption** | Phase 2 stores plain DSNs (dev-grade). Production must reference secret-manager material; design with provisioning automation. | Eng | Phase 9 |
+| OD-20 | DB-grant hardening for append-only audit table | **Recommended** | Revoke UPDATE/DELETE from app role on `audit_event` via provisioning tooling (same pattern as Phase 3 ledger grants); app-level guards exist now. | Eng | Phase 3 |
+| OD-21 | Production SaaS tenant resolution (host- or token-claim-based) | **Open** | `header` resolver is dev/staging-grade behind a trusted gateway; public SaaS routing needs host/claim resolution + gateway design. | Eng | Before SaaS go-live (Phase 9/10) |
 
 ## Resolution protocol
 

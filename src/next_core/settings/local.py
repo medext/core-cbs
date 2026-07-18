@@ -14,3 +14,5 @@ DEBUG = env.bool("DJANGO_DEBUG", default=True)
 # Local runs over plain HTTP.
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
+
+INSTALLED_APPS = [*INSTALLED_APPS, "next_core.control_plane"]  # noqa: F405
