@@ -5,7 +5,7 @@
 | **Purpose** | The operating manual for developing this project with Claude Code: session organization, the mandatory working loop, review gates, branch conventions, and context management. |
 | **Audience** | The human product owner and every Claude Code session working on this repo. |
 | **Owning phase** | Phase 0 (living). |
-| **Related** | [`CLAUDE.md`](../../CLAUDE.md) · [Roadmap](roadmap.md) · `.claude/` configuration |
+| **Related** | `CLAUDE.md` (repo root) · [Roadmap](roadmap.md) · `.claude/` configuration |
 
 ---
 
@@ -62,7 +62,7 @@ or the task list at the top of the phase in the roadmap. Each session picks exac
 
 ## 3. The mandatory 19-step loop (summary)
 
-Canonical version: [`.claude/commands/vertical-slice.md`](../../.claude/commands/vertical-slice.md).
+Canonical version: `.claude/commands/vertical-slice.md` at the repository root.
 
 Inspect → Restate objective → Identify contexts → List assumptions → Smallest safe slice →
 Financial/security risks → Acceptance criteria → **Tests first** → File-level plan →
@@ -127,12 +127,17 @@ The agent must stop and ask before:
    needed; escalation, not implementation).
 6. Publishing anything externally (packages, images, docs sites).
 
-## 8. Quality gates & CI (from Phase 1)
+## 8. Quality gates & CI
 
-CI runs on every PR: Ruff, mypy (strict), pytest (unit/property/integration on real
-PostgreSQL), migration check (no un-generated migrations, no edits to frozen ones), docs
-build, secret scan, dependency audit. Concurrency and e2e suites run on ledger-touching PRs
-and nightly. `make check` reproduces CI locally — run it before every PR.
+Current pipeline (`.github/workflows/ci.yml`, since Phase 1): Ruff lint+format, mypy strict,
+pytest on real PostgreSQL 16 + Redis 7 services with coverage, migration check
+(`makemigrations --check`), strict MkDocs build, security scans (Bandit, pip-audit, gitleaks
+full-history), and a compose runtime smoke job (build image, start stack, assert health).
+`make check` reproduces the quality gates locally — run it before every PR.
+
+Planned additions land with their owning phases: property suites join the tests job in
+Phase 3; concurrency and e2e suites run on ledger-touching PRs and in a nightly workflow
+from Phase 3; performance jobs in Phase 9.
 
 ## 9. Definition of Done (per slice)
 

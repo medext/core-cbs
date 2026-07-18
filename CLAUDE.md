@@ -24,7 +24,9 @@ Canonical commands — do not invent alternatives:
 - Install: `uv sync`
 - Lint: `make lint` (Ruff) · Types: `make typecheck` (mypy strict) · Format: `make format`
 - Tests: `make test` · Targeted: `uv run pytest <path> -x` (**real PostgreSQL** — start it
-  with `make test-db-start` when Docker is unavailable; compose service otherwise)
+  with `make test-db-start`, which serves the test profile's default DSN on port 5433; to
+  test against the compose `postgres` service instead, export
+  `DATABASE_URL=postgres://nextcore:nextcore-dev-only@127.0.0.1:5432/next_core_dev`)
 - Full gate: `make check` (lint + types + tests + docs build)
 - Docs: `make docs` (MkDocs, strict) · Run app: `make run` · Stack: `docker compose up`
 

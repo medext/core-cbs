@@ -39,7 +39,7 @@ relay).
 ## Consequences
 
 - **Positive:** mature ecosystem (monitoring via Flower/OTel instrumentation), documented
-  ops patterns, scheduling included; queue-partitioning option for hot balances (Phase 8+)
+  ops patterns, scheduling included; queue-partitioning option for high-contention ledger balances (Phase 8+)
   is well-trodden.
 - **Negative / accepted costs:** Celery's defaults are unsafe for our use — the reliability
   profile above is **mandatory and lint/review-enforced**; Redis-broker visibility-timeout

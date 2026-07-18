@@ -26,7 +26,7 @@
 | 1.4 | platform: structlog JSON logging + correlation-ID middleware, OTel bootstrap | ✅ done |
 | 1.5 | Health endpoints `/health/live` + `/health/ready` + tests (17 passing, 100% coverage) | ✅ done |
 | 1.6 | deploy/docker/Dockerfile + compose.yaml (postgres 16, redis 7, app; keycloak behind `iam` profile) | ✅ done (`config` validated; runtime proof = CI compose-smoke) |
-| 1.7 | CI `.github/workflows/ci.yml` (quality, tests+PG, docs, security, compose-smoke) | ✅ written — **awaiting first green run on GitHub** |
+| 1.7 | CI `.github/workflows/ci.yml` (quality, tests+PG, docs, security, compose-smoke) | ✅ done — green in CI run #3 (evidence below) |
 | 1.8 | MkDocs site + `docs/deployment/environment-reference.md` incl. `check --deploy` results | ✅ done (strict build green; saas: 0 issues, onprem: W021 intentional) |
 | 1.9 | ADR-0009 worker framework (Celery reliability profile) — Proposed | ✅ done — needs human decision at gate |
 | 1.10 | Finalize CLAUDE.md commands; full `make check`; gate report → human approval | ✅ done — **gate report delivered, awaiting human approval** |
@@ -55,7 +55,7 @@ and `f3cd6d9` (built-in RedisCache backend).
 - **Environment quirk:** the remote dev container has uv 0.8.17, local PostgreSQL 16.13 and
   Redis 7 binaries, but **no Docker daemon** — validate `compose.yaml` with
   `docker compose config`; runtime compose proof comes from CI. Local tests run against a
-  pg_ctl-managed PostgreSQL instance (see Makefile `test-db-*` targets once slice 1.2 lands).
+  pg_ctl-managed PostgreSQL instance (see Makefile `test-db-*` targets).
 - **BLNK docs unreachable** from the dev container (proxy 403) — OD-16 re-validation of the
   BLNK matrix is due before the Phase 3 gate, from an environment with access.
 - No PR exists yet; work is pushed directly to the branch. PR creation only on explicit

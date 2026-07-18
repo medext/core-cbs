@@ -27,11 +27,11 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
 
-# Links pointing outside docs/ (CLAUDE.md, .claude/*) are valid in the GitHub view;
-# report them at info level here instead of failing the strict build.
+# Strict link integrity: unresolved links fail the build. Docs must not use Markdown links
+# to files outside docs/ (CLAUDE.md, .claude/*) — reference those as inline code instead.
 validation:
   links:
-    not_found: info
-    absolute_links: info
+    not_found: warn
+    absolute_links: warn
   nav:
     omitted_files: ignore

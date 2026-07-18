@@ -29,6 +29,7 @@
 | `DJANGO_DEBUG` | no | `true` local only | Ignored (forced False) in saas/onprem |
 | `DATABASE_URL` | **yes** | local dev DSN in local/test | **PostgreSQL only** — any other engine refuses to boot (ADR-0003) |
 | `DATABASE_CONN_MAX_AGE` | no | `60` | Seconds |
+| `TEST_DB_PORT` | no | `5433` | test profile & `make test-db-*` only: port of the local test PostgreSQL |
 | `REDIS_URL` | no | unset → LocMem cache | Cache/rate-limit only, never truth |
 | `LOG_LEVEL` | no | `INFO` | Structured JSON logs |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | no | unset → telemetry no-op | Air-gap friendly |

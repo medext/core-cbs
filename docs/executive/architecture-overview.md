@@ -69,7 +69,11 @@ implementation.
 
 ## Where we are
 
-Phase 0 is complete: this blueprint, the PRD, eight foundational ADRs, the BLNK-inspired
-ledger design, the threat model, and the full development operating system are in the
-repository, awaiting human approval ([Phase 0 review](phase0-review.md)). No production code
-exists yet — by design.
+**Phase 0 was approved on 2026-07-18** (ADRs 0001–0008 Accepted; [review](phase0-review.md)).
+**Phase 1 — the engineering foundation — is delivered and its gate awaits human approval**: a
+running Django 5.2 skeleton with profile-driven secure settings (local/SaaS/on-premise),
+structured JSON logging with correlation IDs, OpenTelemetry bootstrap, health endpoints, the
+full toolchain (uv, Ruff, mypy strict, pytest on real PostgreSQL), compose stack, Docker
+image, and a five-job CI pipeline — all green. No domain or financial logic exists yet;
+tenancy (Phase 2) and the ledger kernel (Phase 3) come next. Current state and next step:
+`STATUS.md` at the repository root.

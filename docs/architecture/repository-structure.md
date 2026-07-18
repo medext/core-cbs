@@ -17,9 +17,11 @@ core-cbs/
   pyproject.toml                 # uv-managed; single source of deps & tool config
   uv.lock
   Makefile                       # lint / typecheck / format / test / check / docs / run
-  compose.yaml                   # Dev stack: app, postgres:16, redis, keycloak(dev), docs
+  compose.yaml                   # Dev stack: app, postgres:16, redis:7, keycloak (dev, `iam`
+                                 # profile — wired in Phase 2)
   .pre-commit-config.yaml
-  .github/workflows/             # ci.yml (lint+types+tests+docs+scans), nightly.yml (concurrency+e2e)
+  .github/workflows/             # ci.yml (lint+types+tests+docs+scans+compose smoke);
+                                 # nightly.yml (concurrency+e2e) arrives in Phase 3
   src/
     next_core/
       platform/                  # Shared kernel: Money, ids, clock, TenantContext type,

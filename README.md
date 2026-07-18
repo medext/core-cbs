@@ -1,6 +1,6 @@
 # Next Core — Bank-Grade Lightweight Core Banking System
 
-**Status: Phase 0 — Architecture Blueprint (awaiting human approval before implementation)**
+**Status: Phase 1 — Repository & engineering foundation (delivered; gate awaiting human approval)**
 
 Next Core is a modern, lightweight, bank-grade Core Banking System designed as real financial
 infrastructure — not a prototype. It targets regulated banks, electronic money institutions,
@@ -12,18 +12,24 @@ and security take precedence over implementation speed.
 
 ## What is in this repository right now
 
-This repository contains the **Phase 0 deliverables only**: the Product Requirements Document,
-the complete architecture blueprint, decision records, and the Claude Code project configuration
-that governs how the system will be built. **No production code exists yet, by design** — the
-project's working method requires explicit human approval of the Phase 0 architecture before
-any implementation begins.
+The **Phase 0 blueprint** (approved 2026-07-18: PRD, architecture, ADRs 0001–0008, Claude
+Code project configuration) plus the **Phase 1 engineering foundation**: a running Django 5.2
+application skeleton (profile-driven settings, structured JSON logging with correlation IDs,
+OpenTelemetry bootstrap, health endpoints), the uv/Ruff/mypy-strict/pytest toolchain, a
+compose stack, a Docker image, and a 5-job CI pipeline — all green. **No domain or financial
+logic exists yet**: that begins with tenancy (Phase 2) and the ledger kernel (Phase 3) after
+the Phase 1 gate is approved.
+
+**Resuming work? Read [`STATUS.md`](STATUS.md) first** — it always holds the current state
+and the exact next step.
 
 ## Start here
 
 | If you are… | Read |
 |---|---|
 | Anyone new to the project | [`docs/executive/architecture-overview.md`](docs/executive/architecture-overview.md) |
-| Reviewing / approving Phase 0 | [`docs/executive/phase0-review.md`](docs/executive/phase0-review.md) |
+| Resuming / continuing development | [`STATUS.md`](STATUS.md) |
+| Reviewing the approved Phase 0 blueprint | [`docs/executive/phase0-review.md`](docs/executive/phase0-review.md) |
 | Looking for the PRD | [`docs/product/prd.md`](docs/product/prd.md) |
 | Planning the build | [`docs/product/roadmap.md`](docs/product/roadmap.md) + [`docs/product/development-workflow.md`](docs/product/development-workflow.md) |
 | An engineer starting Phase 1+ | [`CLAUDE.md`](CLAUDE.md), then [`docs/architecture/repository-structure.md`](docs/architecture/repository-structure.md) |
@@ -41,7 +47,7 @@ docs/
   api/            API standards, error catalog (skeleton — Phase 3+)
   events/         Event & webhook standards (skeleton — Phase 3+)
   security/       Threat model, security architecture, authorization matrix, control readiness
-  deployment/     SaaS / dedicated / on-premise / air-gapped guides (skeleton — Phase 9+)
+  deployment/     Environment reference (authored); SaaS/on-premise guides (skeleton — Phase 9+)
   operations/     Observability & operations (skeleton — Phase 9+)
   runbooks/       Operational runbooks (skeleton — Phase 9+)
   testing/        Test strategy
@@ -66,8 +72,8 @@ updated in the same change as the code it describes.
 
 | Phase | Deliverable | Status |
 |---|---|---|
-| 0 | Architecture blueprint & PRD | ✅ This repository — **awaiting approval** |
-| 1 | Repository & engineering foundation | Blocked on Phase 0 gate |
+| 0 | Architecture blueprint & PRD | ✅ Approved 2026-07-18 |
+| 1 | Repository & engineering foundation | ✅ Delivered — **gate awaiting approval** |
 | 2 | Tenancy, IAM & audit foundation | — |
 | 3 | Ledger kernel | — |
 | 4 | Parties, products & customer accounts | — |
