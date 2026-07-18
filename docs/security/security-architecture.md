@@ -1,4 +1,4 @@
-# Security Architecture *(skeleton — authored Phase 2, hardened Phase 9)*
+# Security Architecture *(sections 1–2 authored Phase 2; remainder skeleton, hardened Phase 9)*
 
 | | |
 |---|---|
@@ -15,13 +15,46 @@ append-only financial tables with revoked UPDATE/DELETE; signed webhooks both di
 no secrets/PII in logs; no tenant-supplied code; encryption in transit everywhere and at rest
 for tenant data; Django `check --deploy` clean as a permanent gate item.
 
-## To author with implementation
+## 1. Authentication flows *(implemented Phase 2 — `src/next_core/iam/authentication.py`)*
 
-1. **Authentication flows** *(Phase 2)* — token validation pipeline, per-tenant issuer/
-   audience config, service-account patterns, token lifetimes, key rotation (JWKS refresh).
-2. **Authorization engine** *(Phase 2)* — permission registry, role definitions, scope→
-   permission mapping, object-level check helpers, maker-checker engine states & storage,
-   ABAC attributes (branch/org-unit).
+Bearer tokens only; validation pipeline per request: tenant context is resolved first
+(middleware), then the token is validated against **that tenant's** expected issuer —
+`OIDC_ISSUER_TEMPLATE.format(tenant=slug)` (realm-per-tenant, ADR-0008). Enforced:
+RS256 only (algorithm-confusion blocked), signature via issuer JWKS, `iss`, `aud`
+(`OIDC_AUDIENCE`), `exp`/required claims (`exp, iss, sub, aud`), 30 s leeway. Every token
+defect — malformed token included — yields 401, never 500; rejection logs carry only the
+exception class, never token material or claims.
+
+- **Tenant/token binding** is structural: a valid token from tenant A's realm presented
+  against tenant B fails issuer validation (proven by contract tests). Startup check
+  `next_core.E001` refuses multi-tenant deployments whose issuer template lacks
+  `{tenant}` (shared-issuer misconfiguration). Defense-in-depth tenant-claim cross-check:
+  OD-22.
+- **JWKS**: fetched from `{issuer}/protocol/openid-connect/certs` (template-configurable),
+  cached per process (5 min lifespan → rotation pickup ≤5 min; emergency rotation =
+  process restart). Air-gapped/test deployments pin `OIDC_JWKS_STATIC` — no network.
+- **Service accounts**: client-credentials tokens validate identically; the principal is
+  flagged service-typed and audit evidence records it. Token lifetimes are IAM policy
+  (short-lived per rules); Next Core never issues or stores credentials.
+
+## 2. Authorization engine *(implemented Phase 2 — `src/next_core/iam/permissions.py`)*
+
+Authorization is decided **inside Next Core**; the IAM asserts identity + coarse roles only.
+- **Permission registry**: append-only string codes (`audit:read`, …) — the source of truth
+  behind the [authorization matrix](authorization-matrix.md); `require_permission(code)`
+  refuses unregistered codes at import time.
+- **Roles → permissions**: static seed bundles in Phase 2 (`auditor`, `platform_ops`);
+  institution-configurable recomposition and ABAC attributes (branch/org-unit) arrive with
+  the configuration workflow; maker-checker engine lands in Phase 6.
+- **Deny by default**: DRF default permission is unsatisfiable by API principals
+  (`is_staff=False`), so an endpoint without an explicit permission class is unreachable;
+  every endpoint also sits behind tenant resolution (hard 400) and issuer-bound
+  authentication (401). Roles never map to Django admin access.
+- **Object-level checks**: Phase 2's only data-plane resource (audit events) is
+  tenant-global; object-ownership helpers land with customer-owned resources (Phase 4) and
+  are mandatory per `.claude/rules/api.md`.
+
+## To author with implementation
 3. **Encryption & key management** *(Phases 2/9)* — TLS posture, at-rest strategy per
    profile (vendor KMS / customer-managed), per-tenant key model, backup encryption,
    rotation procedures.

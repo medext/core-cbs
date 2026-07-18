@@ -14,11 +14,33 @@ from django.db import models
 from next_core.tenancy.context import current_tenant
 
 
-class TenantScopedAuditManager(models.Manager["AuditEvent"]):
+class AppendOnlyQuerySet(models.QuerySet["AuditEvent"]):
+    """Bulk mutation paths are refused too — evidence cannot be rewritten via
+    ``.update()`` / ``.delete()`` / ``bulk_update()`` (DB-grant hardening: OD-20)."""
+
+    def update(self, **kwargs: Any) -> int:
+        raise TypeError("AuditEvent is append-only; bulk updates are prohibited.")
+
+    def delete(self) -> tuple[int, dict[str, int]]:
+        raise TypeError("AuditEvent is append-only; bulk deletes are prohibited.")
+
+    def bulk_update(self, objs: Any, fields: Any, batch_size: int | None = None) -> int:
+        raise TypeError("AuditEvent is append-only; bulk updates are prohibited.")
+
+
+class AppendOnlyManager(models.Manager["AuditEvent"]):
+    """Unscoped append-only manager (base manager for framework internals and explicit
+    per-database verification in tests). Domain code uses ``objects``."""
+
+    def get_queryset(self) -> AppendOnlyQuerySet:
+        return AppendOnlyQuerySet(self.model, using=self._db)
+
+
+class TenantScopedAuditManager(AppendOnlyManager):
     """Every queryset is bound to the current tenant — both by database routing (router)
     and by an explicit tenant_id predicate (belt and braces)."""
 
-    def get_queryset(self) -> models.QuerySet["AuditEvent"]:
+    def get_queryset(self) -> AppendOnlyQuerySet:
         return super().get_queryset().filter(tenant_id=current_tenant().tenant_id)
 
 
@@ -43,10 +65,12 @@ class AuditEvent(models.Model):
     payload = models.JSONField(default=dict, blank=True)
 
     objects = TenantScopedAuditManager()
+    all_objects = AppendOnlyManager()  # unscoped: framework/base use + test verification
 
     class Meta:
         db_table = "audit_event"
         ordering = ["-occurred_at", "-id"]
+        base_manager_name = "all_objects"
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         if not self._state.adding:

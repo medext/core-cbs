@@ -13,7 +13,10 @@ DEBUG = False  # never configurable in this profile
 # Single static tenant; the control-plane runtime is absent (ADR-0005).
 NEXT_CORE_TENANT_RESOLVER = "static"
 NEXT_CORE_TENANT_DIRECTORY = "static"
-NEXT_CORE_TENANT_ID = env("NEXT_CORE_TENANT_ID")  # required; no default
+# Validated at boot: a malformed tenant UUID must fail startup, not per-request.
+from uuid import UUID as _UUID  # noqa: E402
+
+NEXT_CORE_TENANT_ID = str(_UUID(env("NEXT_CORE_TENANT_ID")))  # required; no default
 NEXT_CORE_TENANT_SLUG = env("NEXT_CORE_TENANT_SLUG")
 NEXT_CORE_TENANT_DB_ALIAS = "tenant_main"
 

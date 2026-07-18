@@ -15,6 +15,7 @@ from collections.abc import Callable
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse
 
+from next_core.platform.logging import logger
 from next_core.tenancy.context import TenantContext, tenant_context
 from next_core.tenancy.directory import get_directory
 from next_core.tenancy.exceptions import TenantResolutionError
@@ -51,11 +52,15 @@ class TenantContextMiddleware:
         try:
             ctx = _resolve(request)
         except TenantResolutionError as exc:
+            # Specific reason goes to server logs only; the response is deliberately
+            # generic so unauthenticated callers cannot enumerate tenants or their
+            # lifecycle status (existence oracle).
+            logger.warning("tenancy.resolution_failed", reason=str(exc))
             return JsonResponse(
                 {
                     "code": "TENANT_RESOLUTION_FAILED",
                     "title": "Tenant resolution failed",
-                    "detail": str(exc),
+                    "detail": "The request could not be attributed to a valid tenant.",
                     "correlation_id": getattr(request, "correlation_id", ""),
                     "retryable": False,
                 },

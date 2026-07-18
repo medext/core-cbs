@@ -84,8 +84,10 @@ class OIDCAuthentication(authentication.BaseAuthentication):
 
         tenant = current_tenant()  # middleware established it; raises otherwise
         issuer = _expected_issuer(tenant.slug)
-        key = _signing_key(token, issuer)
+        # The whole key-resolution + decode flow is fenced: ANY token defect (including a
+        # malformed token that fails header parsing in _signing_key) must yield 401, not 500.
         try:
+            key = _signing_key(token, issuer)
             claims: dict[str, Any] = jwt.decode(
                 token,
                 key=key,
@@ -95,6 +97,8 @@ class OIDCAuthentication(authentication.BaseAuthentication):
                 leeway=30,
                 options={"require": ["exp", "iss", "sub", "aud"]},
             )
+        except exceptions.AuthenticationFailed:
+            raise
         except jwt.PyJWTError as exc:
             logger.warning("iam.token.rejected", reason=type(exc).__name__)
             raise exceptions.AuthenticationFailed("Invalid token.") from exc

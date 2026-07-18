@@ -56,6 +56,12 @@ Implementation map: `context.py` (contextvar `TenantContext`, no-default guarant
 (dev/test/staging behind a trusted gateway) and `static` (on-premise); production SaaS
 host-/claim-based resolution lands with public routing (tracked as OD-21).
 
+> **Production rule:** the `header` resolver MUST NOT face untrusted clients. Tenant/token
+> binding relies on realm-per-tenant issuers: the startup check `next_core.E001` refuses a
+> multi-tenant deployment whose `OIDC_ISSUER_TEMPLATE` lacks the `{tenant}` placeholder
+> (a shared issuer would let any authenticated user select another tenant via the header).
+> A token tenant-claim cross-check is tracked as OD-22; routing-entry integrity as OD-19.
+
 - `TenantContext` is established exactly once per request/job from explicit inputs (host/
   path/token claim per deployment config), validated against the tenant registry, and passed
   explicitly. **Resolution failure = hard error; no default tenant** (prohibited pattern).

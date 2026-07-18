@@ -53,12 +53,13 @@ class AuditEventListView(ListAPIView[AuditEvent]):
 
     def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         response = super().list(request, *args, **kwargs)
+        principal = request.user
         record_event(
             operation="audit.trail.viewed",
             resource_type="audit_event",
             resource_id="*",
-            actor=str(request.user),
-            actor_type="USER",
+            actor=str(principal),
+            actor_type="SERVICE" if getattr(principal, "is_service", False) else "USER",
             request=request._request,
         )
         return response

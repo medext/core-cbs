@@ -41,11 +41,23 @@ pools; DB grants revoking UPDATE/DELETE on append-only tables; posting-path role
 
 ### TB3 — Control plane ↔ data plane
 Threats: compromised control plane manipulating financial data (**A1/A5**); routing-map
-poisoning sending tenant A traffic to tenant B DB; rogue provisioning. Mitigations: control
-plane holds **no tenant-DB credentials** (physical separation, ADR-0005); signed TTL-bound
-routing entries validated against tenant registry; provisioning via separate audited
-bootstrap role; all control-plane privileged ops audited + alerting; maker-checker on tenant
-lifecycle operations.
+poisoning sending tenant A traffic to tenant B DB (or an attacker DB); rogue provisioning.
+Target mitigations: control plane holds **no tenant-DB credentials** (physical separation,
+ADR-0005); signed TTL-bound routing entries validated against tenant registry; provisioning
+via separate audited bootstrap role; all control-plane privileged ops audited + alerting;
+maker-checker on tenant lifecycle operations.
+
+> **Phase 2 accepted residual risk (OD-19):** the registry currently stores tenant DSNs
+> (credentials included) in the control database, and routing entries are neither signed nor
+> independently validated — a compromised control DB could repoint a tenant's routing for
+> **newly started** processes. Compensating controls in place: first-registration-wins per
+> process (a running process never re-routes), `tenant_` alias-prefix guard + DB CHECK
+> constraint (the control/default alias cannot be hijacked), PostgreSQL-engine enforcement,
+> and no financial data existing before Phase 3. Consequences: (1) secret-manager references
+> and routing-entry integrity land with provisioning automation, **deadline Phase 9 / before
+> any SaaS production tenant**; (2) `db_alias` values are **never reused** across tenant
+> lifecycles (first-wins would mis-route a reused alias) — decommissioned aliases are
+> retired permanently.
 
 ### TB4 — App ↔ external IAM
 Threats: weak token validation, confused-deputy via mis-scoped audiences, IAM compromise.
