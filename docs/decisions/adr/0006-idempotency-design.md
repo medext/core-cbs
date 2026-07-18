@@ -1,8 +1,8 @@
 # ADR-0006 — Idempotency: DB-arbitrated, scoped keys, hash-verified, response-replaying
 
-- **Status:** Proposed (Phase 0 review)
+- **Status:** Accepted
 - **Date:** 2026-07-17
-- **Deciders:** pending human approval
+- **Deciders:** mohamed@next.mr — approved 2026-07-18 (Phase 0 gate)
 
 ## Context
 

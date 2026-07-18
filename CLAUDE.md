@@ -3,11 +3,19 @@
 Bank-grade lightweight Core Banking System. Modular monolith. Django + DRF + PostgreSQL.
 Correctness, accounting integrity, tenant isolation, and security take precedence over speed.
 
+## Session start & handoff protocol (mandatory)
+
+**Every new session starts by reading `STATUS.md`** — it holds the current phase, the slice
+backlog with the exact next step, and environment quirks. Every session that does any work
+**updates `STATUS.md` in the same commit** (backlog status, date, handoff notes) so the next
+session can resume from the repo alone, without prior conversation context. Work state lives
+in the repository, never only in a conversation.
+
 ## Project status
 
-**Phase 0 (architecture blueprint) — no production code may be written until the Phase 0 gate
-is explicitly approved by a human.** Check `docs/product/roadmap.md` for the current phase and
-its acceptance gate before starting any work. Never skip a phase gate.
+**Phase 1 (repository & engineering foundation) — in progress.** Phase 0 approved 2026-07-18;
+ADRs 0001–0008 Accepted. Check `docs/product/roadmap.md` for the current phase and its
+acceptance gate before starting any work. Never skip a phase gate.
 
 ## Commands
 

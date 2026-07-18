@@ -1,8 +1,8 @@
 # ADR-0004 — Money as integer minor units + ISO-4217 currency
 
-- **Status:** Proposed (Phase 0 review)
+- **Status:** Accepted
 - **Date:** 2026-07-17
-- **Deciders:** pending human approval
+- **Deciders:** mohamed@next.mr — approved 2026-07-18 (Phase 0 gate)
 
 ## Context
 

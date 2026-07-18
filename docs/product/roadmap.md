@@ -12,7 +12,7 @@ executed evidence and a human has approved (recorded below). Skipping gates is p
 
 ---
 
-## Phase 0 — Discovery & architectural blueprint — **CURRENT**
+## Phase 0 — Discovery & architectural blueprint — **APPROVED 2026-07-18**
 
 **Objective:** Complete architecture blueprint as version-controlled Markdown; no production code.
 
@@ -23,13 +23,13 @@ concurrency strategy, tenancy & deployment architecture, BLNK adoption matrix, i
 open-decisions register, Phase 0 review summary.
 
 **Gate:**
-- [ ] All Phase 0 documents exist and are internally consistent.
-- [ ] Every §16 required document exists (authored or structured skeleton with owner phase).
-- [ ] ADRs 0001–0008 complete with alternatives & consequences.
-- [ ] Open-decisions register labels every assumption.
-- [ ] **Human approval of the architecture** → recorded here: _pending_.
+- [x] All Phase 0 documents exist and are internally consistent.
+- [x] Every §16 required document exists (authored or structured skeleton with owner phase).
+- [x] ADRs 0001–0008 complete with alternatives & consequences — **Accepted 2026-07-18**.
+- [x] Open-decisions register labels every assumption.
+- [x] **Human approval of the architecture** → approved by mohamed@next.mr, 2026-07-18.
 
-## Phase 1 — Repository & engineering foundation
+## Phase 1 — Repository & engineering foundation — **CURRENT**
 
 **Objective:** A running, empty-but-production-shaped Django application with full toolchain.
 
@@ -165,4 +165,4 @@ checklist; known-limitations register; production-readiness review.
 
 | Phase | Approved by | Date | Notes |
 |---|---|---|---|
-| 0 | — | — | Awaiting review of this blueprint |
+| 0 | mohamed@next.mr | 2026-07-18 | Blueprint + ADRs 0001–0008 accepted; Phase 1 authorized |

@@ -1,8 +1,8 @@
 # ADR-0003 — PostgreSQL is the sole authority for financial state; Redis is never truth
 
-- **Status:** Proposed (Phase 0 review)
+- **Status:** Accepted
 - **Date:** 2026-07-17
-- **Deciders:** pending human approval
+- **Deciders:** mohamed@next.mr — approved 2026-07-18 (Phase 0 gate)
 
 ## Context
 

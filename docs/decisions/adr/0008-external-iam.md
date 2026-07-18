@@ -1,8 +1,8 @@
 # ADR-0008 — External IAM via OAuth 2.0 / OIDC (Keycloak reference); no homegrown authentication
 
-- **Status:** Proposed (Phase 0 review)
+- **Status:** Accepted
 - **Date:** 2026-07-17
-- **Deciders:** pending human approval
+- **Deciders:** mohamed@next.mr — approved 2026-07-18 (Phase 0 gate)
 
 ## Context
 

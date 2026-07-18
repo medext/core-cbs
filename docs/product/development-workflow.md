@@ -39,6 +39,9 @@ commit/PR boundary. Avoid marathon sessions mixing unrelated slices.
 
 ### Session start ritual (any session)
 
+0. Read **`STATUS.md`** (repo root) — the session-handoff document: current state, slice
+   backlog, exact next step, environment notes. This makes any fresh session resumable from
+   the repository alone.
 1. Read `docs/product/roadmap.md` → current phase + remaining gate items.
 2. Read the phase's relevant docs and `.claude/rules/` for paths you will touch.
 3. Check `docs/decisions/open-decisions.md` for anything blocking your slice.
@@ -46,6 +49,8 @@ commit/PR boundary. Avoid marathon sessions mixing unrelated slices.
 
 ### Session end ritual
 
+- **Update `STATUS.md` in the same commit** (backlog statuses, last-updated date, handoff
+  notes) — the next session must be able to continue without this conversation.
 - Change report (loop step 17), updated docs, updated open-decisions register.
 - Commit(s) pushed to the working branch; gate checklist updated if applicable.
 - If the slice ends at a stop-point (gate, ADR approval, destructive action): STOP and ask.
