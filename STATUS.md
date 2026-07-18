@@ -12,10 +12,25 @@
 | Phase | Status |
 |---|---|
 | 0 — Architecture blueprint | ✅ Approved 2026-07-18 (ADRs 0001–0008 Accepted) |
-| **1 — Repository & engineering foundation** | 🔨 **IN PROGRESS** (started 2026-07-18) |
-| 2–10 | Not started (see `docs/product/roadmap.md`) |
+| 1 — Repository & engineering foundation | ✅ Approved 2026-07-18 (CI run #3 green; ADR-0009 Celery Accepted) |
+| **2 — Tenancy, IAM & audit foundation** | 🔨 **IN PROGRESS** (started 2026-07-18) |
+| 3–10 | Not started (see `docs/product/roadmap.md`) |
 
-## Phase 1 slice backlog (execute in order)
+## Phase 2 slice backlog (execute in order)
+
+| # | Slice | Status |
+|---|---|---|
+| 2.0 | Record Phase 1 approval; ADR-0009 → Accepted; OD-5 confirmed | ✅ done |
+| 2.1 | `tenancy` context: explicit `TenantContext` (contextvar), DB router raising on missing context (no default tenant), resolver strategies (header=dev, static=onprem) + middleware | ⬜ next |
+| 2.2 | `control_plane` context: Tenant registry model (separate control DB), runtime tenant-DB alias registration | ⬜ |
+| 2.3 | Migration fan-out: `migrate_tenants` management command (per-tenant, idempotent, resumable) | ⬜ |
+| 2.4 | `audit` context: append-only AuditEvent (tenant DB), record service w/ correlation IDs, `/api/v1/audit/events` read endpoint (first data-plane route) | ⬜ |
+| 2.5 | `iam` context: OIDC token validation boundary (JWKS, per-tenant issuer/audience), permission registry + DRF permission classes, tenant↔token match enforcement | ⬜ |
+| 2.6 | Profile wiring: saas/onprem DATABASES & INSTALLED_APPS (control plane absent on-prem), compose keycloak (`iam` profile), CI job proving on-prem boots without control plane | ⬜ |
+| 2.7 | Gate test suites: cross-tenant fail-safe, no-implicit-tenant hard errors, concurrent mixed-tenant routing determinism, audit emission, OIDC contract tests | ⬜ |
+| 2.8 | `security-reviewer` subagent on tenancy/IAM diff; docs same-change; gate report → human approval | ⬜ |
+
+## Phase 1 slice backlog (✅ complete, gate approved 2026-07-18)
 
 | # | Slice | Status |
 |---|---|---|

@@ -29,7 +29,7 @@ open-decisions register, Phase 0 review summary.
 - [x] Open-decisions register labels every assumption.
 - [x] **Human approval of the architecture** → approved by mohamed@next.mr, 2026-07-18.
 
-## Phase 1 — Repository & engineering foundation — **CURRENT**
+## Phase 1 — Repository & engineering foundation — **APPROVED 2026-07-18**
 
 **Objective:** A running, empty-but-production-shaped Django application with full toolchain.
 
@@ -50,9 +50,9 @@ MkDocs site; CLAUDE.md command sections un-TBD'd.
 - [x] `manage.py check --deploy` documented — `docs/deployment/environment-reference.md`
       (saas: 0 issues; onprem: W021 intentional, justified).
 - [x] No secrets in repo — gitleaks full-history scan green in CI + guard-secrets hook.
-- [ ] Human approval: _pending_ (see also ADR-0009 worker-framework decision).
+- [x] Human approval: **approved by mohamed@next.mr, 2026-07-18** (incl. ADR-0009: Celery).
 
-## Phase 2 — Tenancy, IAM & audit foundation
+## Phase 2 — Tenancy, IAM & audit foundation — **CURRENT**
 
 **Objective:** Tenant-safe skeleton: no financial code yet, but isolation proven.
 
@@ -171,3 +171,4 @@ checklist; known-limitations register; production-readiness review.
 | Phase | Approved by | Date | Notes |
 |---|---|---|---|
 | 0 | mohamed@next.mr | 2026-07-18 | Blueprint + ADRs 0001–0008 accepted; Phase 1 authorized |
+| 1 | mohamed@next.mr | 2026-07-18 | Engineering foundation accepted (CI run #3 evidence); ADR-0009 (Celery) accepted; Phase 2 authorized |

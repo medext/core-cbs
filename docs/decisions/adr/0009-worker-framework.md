@@ -1,8 +1,8 @@
 # ADR-0009 — Celery (reliability-configured) as the async worker framework
 
-- **Status:** Proposed (decide at Phase 1 gate; wired in Phase 3)
+- **Status:** Accepted
 - **Date:** 2026-07-18
-- **Deciders:** pending human approval
+- **Deciders:** mohamed@next.mr — approved 2026-07-18 (Phase 1 gate)
 
 ## Context
 

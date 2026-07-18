@@ -14,4 +14,4 @@ changes of direction are a new, superseding ADR.
 | [0006](0006-idempotency-design.md) | DB-arbitrated, scoped, hash-verified idempotency | Accepted |
 | [0007](0007-transactional-outbox.md) | Transactional outbox + inbox deduplication | Accepted |
 | [0008](0008-external-iam.md) | External IAM (OIDC; Keycloak reference) | Accepted |
-| [0009](0009-worker-framework.md) | Celery (reliability-configured) as worker framework | Proposed |
+| [0009](0009-worker-framework.md) | Celery (reliability-configured) as worker framework | Accepted |
