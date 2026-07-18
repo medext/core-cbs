@@ -32,7 +32,9 @@ exception class, never token material or claims.
   OD-22.
 - **JWKS**: fetched from `{issuer}/protocol/openid-connect/certs` (template-configurable),
   cached per process (5 min lifespan → rotation pickup ≤5 min; emergency rotation =
-  process restart). Air-gapped/test deployments pin `OIDC_JWKS_STATIC` — no network.
+  process restart). `OIDC_JWKS_STATIC` (a pinned JWKS in settings, no network) is the
+  mechanism the test suite uses and the intended air-gap path — operator-reachable wiring
+  for on-premise installs ships with on-prem packaging (Phase 9).
 - **Service accounts**: client-credentials tokens validate identically; the principal is
   flagged service-typed and audit evidence records it. Token lifetimes are IAM policy
   (short-lived per rules); Next Core never issues or stores credentials.

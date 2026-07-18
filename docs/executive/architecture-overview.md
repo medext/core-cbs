@@ -69,11 +69,13 @@ implementation.
 
 ## Where we are
 
-**Phase 0 was approved on 2026-07-18** (ADRs 0001–0008 Accepted; [review](phase0-review.md)).
-**Phase 1 — the engineering foundation — is delivered and its gate awaits human approval**: a
-running Django 5.2 skeleton with profile-driven secure settings (local/SaaS/on-premise),
-structured JSON logging with correlation IDs, OpenTelemetry bootstrap, health endpoints, the
-full toolchain (uv, Ruff, mypy strict, pytest on real PostgreSQL), compose stack, Docker
-image, and a five-job CI pipeline — all green. No domain or financial logic exists yet;
-tenancy (Phase 2) and the ledger kernel (Phase 3) come next. Current state and next step:
-`STATUS.md` at the repository root.
+**Phases 0 and 1 were approved on 2026-07-18** (ADRs 0001–0009 Accepted;
+[Phase 0 review](phase0-review.md)). **Phase 2 — tenancy, IAM & audit — is delivered and its
+gate awaits human approval**: explicit tenant context with database-per-tenant routing that
+raises rather than ever falling back to a default tenant, a control-plane registry physically
+separated from tenant data (and absent at runtime on-premise, proven in CI), migration
+fan-out tooling, an OIDC boundary binding tokens to tenants via realm-per-tenant issuers, a
+permission framework, and an append-only audit trail behind the first tenant-scoped API
+endpoint — hostile cross-tenant, concurrency, and token-contract suites green on real
+PostgreSQL, security-reviewed. No financial logic exists yet; the ledger kernel is Phase 3.
+Current state and next step: `STATUS.md` at the repository root.

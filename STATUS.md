@@ -28,7 +28,7 @@
 | 2.5 | `iam` context: OIDC token validation boundary (JWKS, per-tenant issuer/audience), permission registry + DRF permission classes, tenant↔token binding via issuer | ✅ done |
 | 2.6 | Profile wiring: saas/onprem DATABASES & INSTALLED_APPS (control plane absent on-prem), compose keycloak (`iam` profile), CI `onprem-boot` job | ✅ done |
 | 2.7 | Gate test suites: cross-tenant fail-safe, no-implicit-tenant hard errors, concurrent mixed-tenant routing determinism, audit emission, OIDC contract tests — **71 tests green, coverage 96%** | ✅ done |
-| 2.8 | `security-reviewer` subagent on tenancy/IAM diff; docs same-change; CI green; gate report → human approval | 🔨 in progress |
+| 2.8 | Security review (3 HIGH + 3 MEDIUM fixed w/ regression tests), documentation review (1 BLOCKER + 8 CONCERNs fixed), CI 6 jobs green ([run #10](https://github.com/medext/core-cbs/actions/runs/29661840687)), gate report delivered | ✅ done — **awaiting human approval** |
 
 ## Phase 1 slice backlog (✅ complete, gate approved 2026-07-18)
 
@@ -46,10 +46,12 @@
 | 1.9 | ADR-0009 worker framework (Celery reliability profile) — Proposed | ✅ done — needs human decision at gate |
 | 1.10 | Finalize CLAUDE.md commands; full `make check`; gate report → human approval | ✅ done — **gate report delivered, awaiting human approval** |
 
-**CI evidence:** run #3 all 5 jobs green (quality, tests+PG+Redis, docs, security, compose
-runtime smoke) — <https://github.com/medext/core-cbs/actions/runs/29658380251> (commit
-`f3cd6d9`). Runs #1–#2 caught two real defects fixed in `9b17097` (Dockerfile README copy)
-and `f3cd6d9` (built-in RedisCache backend).
+**Phase 2 CI evidence:** run #10 all 6 jobs green (quality, tests+PG+Redis+tenant DBs, docs,
+security, onprem-boot, compose smoke) —
+<https://github.com/medext/core-cbs/actions/runs/29661840687> (commit `4d9b962`). Runs #8–#9
+caught two real defects (missing state migration for the append-only managers; unformatted
+generated migration). Phase 1 evidence: run #3 (5 jobs) — runs #1–#2 caught the Dockerfile
+README copy and the RedisCache backend defects.
 
 **Definition of the Phase 1 gate** (all must have executed evidence):
 `docs/product/roadmap.md` → Phase 1 Gate. Then **STOP — human approval required** before Phase 2.

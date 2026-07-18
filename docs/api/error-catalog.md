@@ -30,9 +30,9 @@
 | Code | Category | Retryable | Notes |
 |---|---|---|---|
 | `VALIDATION_ERROR` | 400 | No | With `errors[]` field details |
-| `TENANT_RESOLUTION_FAILED` | 400 | No | Missing/invalid/unknown/inactive tenant — hard failure, never a fallback (implemented Phase 2) |
-| `AUTHENTICATION_REQUIRED` / `TOKEN_EXPIRED` | 401 | After refresh | |
-| `PERMISSION_DENIED` | 403 | No | Function-level |
+| `TENANT_RESOLUTION_FAILED` | 400 | No | **Implemented (Phase 2).** Missing/invalid/unknown/inactive tenant — hard failure, never a fallback. `detail` is deliberately identical for every failure mode (anti-enumeration: no tenant existence/status oracle); the specific reason is server-logged only. Phase 2 body carries `code/title/detail/correlation_id/retryable`; the `type`/`status` members join with the RFC 9457 handler (OD-27). Example: `{"code": "TENANT_RESOLUTION_FAILED", "title": "Tenant resolution failed", "detail": "The request could not be attributed to a valid tenant.", "correlation_id": "req_…", "retryable": false}` |
+| `AUTHENTICATION_REQUIRED` / `TOKEN_EXPIRED` | 401 | After refresh | Phase 2 emits DRF's default `{"detail": …}` shape for 401/403; the problem-details shape with these codes lands with the RFC 9457 handler (OD-27) |
+| `PERMISSION_DENIED` | 403 | No | Function-level (same OD-27 shape note) |
 | `RESOURCE_NOT_FOUND` | 404 | No | Also masks cross-tenant existence |
 | `IDEMPOTENCY_CONFLICT` | 409 | No | Key reused with different payload |
 | `REQUEST_IN_PROGRESS` | 409 | **Yes** (backoff) | Same key currently executing |

@@ -98,6 +98,18 @@ ambiguous (business transaction vs. accounting transaction vs. database transact
 | **Inbox / deduplication** | Consumer-side pattern discarding already-processed event deliveries. |
 | **Correlation ID** | Identifier propagated across a request/job/event chain for tracing and audit. |
 
+## Identity & access (Phase 2)
+
+| Term | Definition |
+|---|---|
+| **Principal** | The authenticated identity asserted by the external IAM for one request: subject, tenant, roles, user/service type. Authorization is never decided from the principal's claims alone. |
+| **Permission (registry)** | Next Core's append-only catalog of operation-level permission codes (e.g. `audit:read`); every endpoint names one explicitly. |
+| **Role bundle** | A named set of permissions granted to a role (seed bundles in code; institution-recomposable via configuration in later phases). |
+| **Realm-per-tenant / issuer binding** | The IAM pattern where each tenant has its own OIDC realm; a token is bound to its tenant structurally because the expected issuer is derived from the resolved tenant. |
+| **Tenant directory** | The component resolving a tenant identifier to a validated `TenantContext` (control-plane registry in SaaS; static configuration on-premise). |
+| **Resolver strategy** | How the tenant identifier is obtained at the request boundary (`header` for dev/staging behind a trusted gateway; `static` on-premise; host/claim-based for production SaaS — OD-21). |
+| **Audit event** | One append-only evidence record (actor, operation, resource, correlation ID, tenant) in the tenant's database; never updated or deleted. |
+
 ## Operations
 
 | Term | Definition |

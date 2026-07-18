@@ -1,6 +1,6 @@
 # Next Core — Bank-Grade Lightweight Core Banking System
 
-**Status: Phase 1 — Repository & engineering foundation (delivered; gate awaiting human approval)**
+**Status: Phase 2 — Tenancy, IAM & audit foundation (delivered; gate awaiting human approval)**
 
 Next Core is a modern, lightweight, bank-grade Core Banking System designed as real financial
 infrastructure — not a prototype. It targets regulated banks, electronic money institutions,
@@ -12,13 +12,14 @@ and security take precedence over implementation speed.
 
 ## What is in this repository right now
 
-The **Phase 0 blueprint** (approved 2026-07-18: PRD, architecture, ADRs 0001–0008, Claude
-Code project configuration) plus the **Phase 1 engineering foundation**: a running Django 5.2
-application skeleton (profile-driven settings, structured JSON logging with correlation IDs,
-OpenTelemetry bootstrap, health endpoints), the uv/Ruff/mypy-strict/pytest toolchain, a
-compose stack, a Docker image, and a 5-job CI pipeline — all green. **No domain or financial
-logic exists yet**: that begins with tenancy (Phase 2) and the ledger kernel (Phase 3) after
-the Phase 1 gate is approved.
+The **Phase 0 blueprint** (approved 2026-07-18) and **Phase 1 engineering foundation**
+(approved 2026-07-18), plus the **Phase 2 tenancy/IAM/audit foundation**: explicit tenant
+context with database-per-tenant routing that hard-fails without a tenant, a control-plane
+tenant registry (absent at runtime on-premise), migration fan-out tooling, an OIDC
+authentication boundary with per-tenant issuer binding, a permission framework, an
+append-only audit trail with the first tenant-scoped API endpoint, and a 6-job CI pipeline
+(including on-prem-boot and compose runtime smoke). **No financial logic exists yet** — the
+ledger kernel is Phase 3, after the Phase 2 gate is approved.
 
 **Resuming work? Read [`STATUS.md`](STATUS.md) first** — it always holds the current state
 and the exact next step.
@@ -44,7 +45,7 @@ docs/
   architecture/   C4 diagrams, tenancy & deployment, idempotency & concurrency, repo structure
   domain/         Glossary, domain model & bounded contexts, transaction lifecycle
   accounting/     Ledger architecture, accounting model, invariants, balance semantics, CoA
-  api/            API standards, error catalog (skeleton — Phase 3+)
+  api/            API standards (binding rules live), error catalog (first codes implemented)
   events/         Event & webhook standards (skeleton — Phase 3+)
   security/       Threat model, security architecture, authorization matrix, control readiness
   deployment/     Environment reference (authored); SaaS/on-premise guides (skeleton — Phase 9+)
@@ -73,8 +74,8 @@ updated in the same change as the code it describes.
 | Phase | Deliverable | Status |
 |---|---|---|
 | 0 | Architecture blueprint & PRD | ✅ Approved 2026-07-18 |
-| 1 | Repository & engineering foundation | ✅ Delivered — **gate awaiting approval** |
-| 2 | Tenancy, IAM & audit foundation | — |
+| 1 | Repository & engineering foundation | ✅ Approved 2026-07-18 |
+| 2 | Tenancy, IAM & audit foundation | ✅ Delivered — **gate awaiting approval** |
 | 3 | Ledger kernel | — |
 | 4 | Parties, products & customer accounts | — |
 | 5 | Transfers, holds, fees & limits | — |

@@ -19,8 +19,10 @@
 - **Errors:** RFC 9457 problem details + stable machine-readable `code` from the
   [error catalog](error-catalog.md); `retryable` boolean; `correlation_id` echoed.
 - **Money on the wire:** decimal strings + `currency` per ADR-0004; excess precision rejected.
-- **Collections:** cursor pagination (`limit` ≤ bounded max); filtering via documented
-  allow-lists only; stable sort keys.
+- **Collections:** cursor pagination (`limit` ≤ bounded max) for financial collections from
+  Phase 3; filtering via documented allow-lists only; stable sort keys. *Phase 2 exception
+  (OD-26): the audit listing ships bounded page-number pagination and migrates to cursor
+  pagination with the first financial collections.*
 - **Correlation:** `X-Request-ID` accepted/generated, propagated to traces, logs, audit.
 - **Auth:** OAuth2 bearer; scope + permission documented per endpoint; 401 vs 403 semantics
   fixed (403 never confirms resource existence cross-tenant — 404).

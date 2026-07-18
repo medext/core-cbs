@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | Configuration reference per profile + documented `manage.py check --deploy` results (Phase 1 gate item). |
 | **Audience** | Engineering, operators. |
-| **Owning phase** | Phase 1 (this version) — extended every time a setting is added (same-change rule). |
+| **Owning phase** | Started Phase 1; extended every time a setting is added (same-change rule) — current through Phase 2. |
 | **Related** | [Tenancy & deployment](../architecture/tenancy-and-deployment.md) · `.env.example` |
 
 ## Profiles
@@ -19,7 +19,7 @@
 | `onprem` | **forced False** | none — missing env fails boot | redirect/HSTS env-tunable (TLS may terminate on customer LB) |
 | `test` | False | test-only defaults | n/a |
 
-## Environment variables (Phase 1 set)
+## Environment variables (current set)
 
 | Variable | Required | Default | Notes |
 |---|---|---|---|
@@ -36,6 +36,8 @@
 | `OIDC_ISSUER_TEMPLATE` | yes for authenticated APIs | empty (auth fails closed) | Per-tenant issuer, e.g. `https://kc/realms/{tenant}` |
 | `OIDC_AUDIENCE` | no | `next-core` | Expected token audience |
 | `OIDC_JWKS_URL_TEMPLATE` | no | `{issuer}/protocol/openid-connect/certs` | JWKS location (Keycloak-style default) |
+| `OIDC_ROLES_CLAIM` | no | `realm_access.roles` | Dotted claim path for role extraction |
+| — `OIDC_JWKS_STATIC` (settings-only) | no | unset | Static JWKS document bypassing network fetch. **Test-suite mechanism today**; operator-reachable env wiring for air-gapped installs lands with on-prem packaging (Phase 9) |
 | `REDIS_URL` | no | unset → LocMem cache | Cache/rate-limit only, never truth |
 | `LOG_LEVEL` | no | `INFO` | Structured JSON logs |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | no | unset → telemetry no-op | Air-gap friendly |

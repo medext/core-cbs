@@ -40,7 +40,7 @@ flowchart LR
         TN[(tenant_… DB)]
     end
     CP --> CPDB
-    API1 & API2 & WRK -- "routing cache (signed, TTL)" --> CP
+    API1 & API2 & WRK -- "routing lookup (signing/TTL: OD-19)" --> CP
     API1 --> T1
     API2 --> T2
     WRK --> T1 & T2 & TN
@@ -65,14 +65,22 @@ host-/claim-based resolution lands with public routing (tracked as OD-21).
 - `TenantContext` is established exactly once per request/job from explicit inputs (host/
   path/token claim per deployment config), validated against the tenant registry, and passed
   explicitly. **Resolution failure = hard error; no default tenant** (prohibited pattern).
-- Routing map (tenant → DB DSN alias) is served by the control plane, cached in the app layer
-  with signed, TTL-bound entries; the data-plane app holds per-tenant connection aliases with
-  isolated pools (pool exhaustion of one tenant must not starve others — pool policy per
-  tenant class).
+- Routing (tenant → DB alias) — **Phase 2 mechanism**: per-resolution lookup of the
+  control-plane registry; the alias is pinned per process on first registration
+  (first-registration-wins), guarded by the `tenant_` alias-prefix rule and the
+  `cp_tenant_alias_prefix` DB CHECK. Signed, TTL-bound routing entries are the **target**
+  design, tracked as OD-19 (accepted residual risk documented in the threat model, TB3).
+- Connections: one Django connection per alias per worker, bounded by `CONN_MAX_AGE`;
+  dedicated pooling policy (per tenant class) is deferred to OD-10 with real load data.
 - Every ORM access goes through tenant-scoped managers bound to the routed connection;
-  unscoped access paths are lint/review/test-blocked.
-- Migrations: fan-out runner applies per tenant DB with per-tenant status ledger, resumable,
-  N-1 compatible (see `.claude/rules/migrations.md`).
+  unscoped access paths are review/test-blocked (static-analysis enforcement is planned —
+  see isolation-assurance item 3 below).
+- Migrations: fan-out runner (`migrate_tenants`) applies per tenant DB in deterministic
+  order with per-tenant migration records (Django) and explicit per-tenant status output;
+  fail-fast and resumable (re-runs are idempotent no-ops), N-1 compatible
+  (see `.claude/rules/migrations.md`).
+- Tenant-scope exemptions: only `/health/*` (process-level liveness/readiness) bypasses
+  tenant resolution; every other route requires a resolved tenant (hard 400).
 
 ### Control plane boundaries
 
@@ -100,8 +108,10 @@ tenant-resolution strategy (registry vs. static), control-plane client (real vs.
 key/secret providers, observability exporters. No conditional business logic on profile —
 prohibited-fork rule.
 
-The on-premise profile is exercised in CI from Phase 2 (boot + serve + cross-tenant suite
-with control plane absent), preventing SaaS-only drift.
+The on-premise profile is exercised in CI from Phase 2 (`onprem-boot` job: boot with the
+control plane absent + migration fan-out via the static directory + serve health + a
+data-plane 401 probe), preventing SaaS-only drift. The full cross-tenant suite runs in the
+`tests` job under the multi-tenant test profile.
 
 ## Tenant-specific behavior — allowed mechanisms only
 

@@ -17,11 +17,11 @@ decision) · `Deferred` (explicitly later, with trigger).
 | OD-3 | Product name / repo naming | **Assumption** | Product "Next Core", repo `medext/core-cbs` — documented in repo-structure deviations. | Human | Anytime |
 | OD-4 | FX depth for MVP | **Recommended** | Same-currency operations only through Phase 5; FX bridge modeled (accounts + rate reference) but inactive. Consequence: no cross-currency transfers in MVP. | Human | Phase 5 gate |
 | OD-5 | Worker framework (Celery vs. Dramatiq) | **Confirmed** (2026-07-18) | ADR-0009 Accepted: Celery with mandatory reliability profile (acks_late, reject-on-worker-lost, explicit queues). Wired in Phase 3. | — | Done |
-| OD-6 | OpenAPI tooling | **Recommended** | drf-spectacular (OpenAPI 3.1) — confirm in Phase 1 with version check. | Eng | Phase 1 |
+| OD-6 | OpenAPI tooling & first spec | **Recommended** | drf-spectacular (OpenAPI 3.1). Not shipped in Phases 1–2; the Phase 2 audit endpoint's spec is explicitly deferred with it. Due with the first financial APIs. | Eng | Phase 3 |
 | OD-7 | Business-date default cutover & calendar seed | **Assumption** | Tenant-configurable calendar; default Mon–Fri + configurable holidays; single business date per tenant (no branch-level dates in MVP). Consequence: branch-level day management deferred. | Human | Phase 7 |
 | OD-8 | Idempotency & audit retention horizons | **Assumption** | 10 years for financial records/audit/idempotency (conservative bank-grade default); consequence: storage archival tooling needed by Phase 9. Confirm against target-market law. | Human | Phase 9 |
 | OD-9 | RPO/RTO commitments & PostgreSQL HA topology | **Assumption** | Working targets RPO ≤ 5 min, RTO ≤ 4 h; synchronous-replica evaluation in Phase 9. No SLO published before drills. | Human+Eng | Phase 9 |
-| OD-10 | Connection pooling (per-tenant pools vs. PgBouncer) | **Deferred** | Decide with real tenant counts/load in Phase 9; Phase 2 ships bounded per-tenant pools. | Eng | Phase 9 |
+| OD-10 | Connection pooling (per-tenant pools vs. PgBouncer) | **Deferred** | Decide with real tenant counts/load in Phase 9. Phase 2 reality: one Django connection per alias per worker, bounded by `CONN_MAX_AGE=60` — no dedicated pooling yet. | Eng | Phase 9 |
 | OD-11 | Rules-engine formalism for posting rules (Phase 6) | **Open** | Declarative schema (YAML/JSON + restricted expression language, sandboxed & versioned). No arbitrary code — non-negotiable. Formalism ADR due Phase 6. | Eng | Phase 6 |
 | OD-12 | Licensing & distribution model | **Open** | README says proprietary pending decision. Affects on-prem artifact distribution. | Human | Before Phase 10 |
 | OD-13 | Duplicate of OD-5 — merged. | — | — | — | — |
@@ -36,6 +36,9 @@ decision) · `Deferred` (explicitly later, with trigger).
 | OD-22 | Token tenant-claim cross-check (second factor beyond issuer binding) | **Recommended** | Add validation of an explicit tenant claim against the resolved tenant, as defense in depth on top of realm-per-tenant issuer binding. | Eng | Phase 3 |
 | OD-23 | TLS enforcement on tenant-DB DSNs (`sslmode=require`) in SaaS profile | **Recommended** | register_tenant_alias currently trusts the DSN author for transport security; enforce/validate sslmode for SaaS-profile registrations. | Eng | Phase 9 |
 | OD-24 | Ingress overwrite of client-supplied X-Request-ID in production | **Recommended** | Correlation IDs are sanitized but attacker-choosable; production ingress should overwrite/namespace them so audit correlation evidence is server-controlled. | Eng | Phase 9 |
+| OD-25 | Import-linter boundary contracts (golden dependency rules in CI) | **Deferred** | Planned for Phase 2, not shipped; due with the ledger kernel where cross-context import rules become financially load-bearing. | Eng | Phase 3 |
+| OD-26 | Pagination style: bounded page-number (shipped) vs. cursor (API standard) | **Assumption** | Phase 2's audit listing ships bounded PageNumber pagination; the cursor-pagination standard applies from the first financial collections (Phase 3+), and the audit endpoint migrates then. Documented in api-standards. | Eng | Phase 3 |
+| OD-27 | RFC 9457 exception handler for DRF 401/403 responses | **Deferred** | Phase 2's 401/403 use DRF's default `{"detail": …}` shape (no `code`/`correlation_id`); the problem-details handler lands with the error-catalog build-out. | Eng | Phase 3 |
 
 ## Resolution protocol
 

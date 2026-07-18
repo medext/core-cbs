@@ -87,15 +87,19 @@ data-plane contexts; `platform` imports nothing of next_core.
 | `.github/workflows/` added | CI is part of the engineering foundation (Phase 1 gate). |
 | Repo root name `core-cbs` (not `next-core`) | GitHub repository already named `medext/core-cbs`; product name remains Next Core. |
 
-## Current state (Phase 1)
+## Current state (Phase 2)
 
 Materialized: `CLAUDE.md`, `README.md`, `STATUS.md`, `.claude/`, `docs/` + `mkdocs.yml`,
-`pyproject.toml`/`uv.lock`, `Makefile`, `compose.yaml`, `.github/workflows/ci.yml`,
-`manage.py`, `deploy/docker/`, and under `src/next_core/`: `settings/` (base + local/saas/
-onprem/test profiles), `platform/` (logging, telemetry, `health/` app), `urls.py`,
-`wsgi.py`/`asgi.py`; `tests/unit/` + `tests/integration/`.
+`pyproject.toml`/`uv.lock`, `Makefile`, `compose.yaml`, `.github/workflows/ci.yml` (6 jobs
+incl. `onprem-boot` + `compose-smoke`), `manage.py`, `deploy/docker/`, and under
+`src/next_core/`: `settings/` (base + local/saas/onprem/test), `platform/` (logging,
+telemetry, api, `health/`), `tenancy/` (context, router, directory, middleware,
+`migrate_tenants`), `control_plane/` (Tenant registry + migration), `iam/` (OIDC auth,
+permissions, system checks), `audit/` (append-only model + 2 migrations, service, API),
+`urls.py`, `wsgi.py`/`asgi.py`; `tests/{unit,integration,contract}/`.
 
-Bounded-context packages (`ledger/`, `transactions/`, `tenancy/`, …) are **not** created
-ahead of their owning phase — no dead structure to drift. Each context appears with its
-phase (tenancy/control_plane/iam/audit in Phase 2, ledger in Phase 3, …). Import-linter
-boundary contracts land with the first multi-context phase (Phase 2).
+Remaining bounded-context packages (`ledger/`, `transactions/`, `parties/`, …) are **not**
+created ahead of their owning phase — no dead structure to drift. Boundary-contract
+enforcement (import-linter) was not shipped in Phase 2; it is registered as OD-25 and due
+with the ledger kernel (Phase 3), where the golden dependency rules become financially
+load-bearing.

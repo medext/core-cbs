@@ -62,11 +62,25 @@ database routing (ADR-0005) incl. migration fan-out tooling; on-premise single-t
 scope model; audit event foundation; correlation IDs end-to-end; cross-tenant test harness.
 
 **Gate:**
-- [ ] Cross-tenant access tests fail safely (404/403, no leak) for every data-plane route.
-- [ ] No request path can run with an implicit/default tenant (tests prove hard failure).
-- [ ] Routing deterministic under concurrent mixed-tenant load (test evidence).
-- [ ] Audit events emitted for auth'd operations with correlation IDs.
-- [ ] On-prem profile boots & serves with control-plane runtime absent (CI job).
+- [x] Cross-tenant access tests fail safely for every data-plane route — tenant A token on
+      tenant B → 401 (issuer binding); A's listing never contains B's data (verified with
+      unscoped per-database queries); no existence leak in error bodies
+      (`tests/integration/test_cross_tenant.py`, anti-enumeration test in
+      `tests/contract/test_security_review_fixes.py`).
+- [x] No implicit/default tenant possible — router raises on unscoped data-plane access;
+      middleware hard-400s on missing/invalid/unknown/inactive tenant; empty registry is a
+      command error (`tests/unit/test_router.py`, `test_tenant_middleware.py`).
+- [x] Routing deterministic under concurrent mixed-tenant load — barrier-synchronized
+      parallel writers, per-database verification incl. tenant_id/database agreement
+      (`tests/integration/test_routing_concurrency.py`).
+- [x] Audit events emitted with correlation IDs (`test_audit_service.py`; access to the
+      audit trail is itself audited).
+- [x] On-prem profile boots & serves with control plane absent — CI `onprem-boot` job
+      (boot assert + migrate fan-out + health + data-plane 401 probe).
+- [x] Security review: APPROVE-WITH-CONDITIONS → all 3 HIGH + 3 MEDIUM findings fixed with
+      regression tests; residual risks honestly registered (OD-19..OD-24).
+- [x] CI all 6 jobs green — [run #10](https://github.com/medext/core-cbs/actions/runs/29661840687)
+      (commit `4d9b962`); local `make check` ALL GATES PASSED (76 tests, coverage 96%).
 - [ ] Human approval: _pending_.
 
 ## Phase 3 — Ledger kernel ⚠️ most critical
