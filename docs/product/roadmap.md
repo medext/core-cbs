@@ -41,11 +41,16 @@ structured JSON logging; OTel bootstrap; health endpoints (`/health/live`, `/hea
 MkDocs site; CLAUDE.md command sections un-TBD'd.
 
 **Gate:**
-- [ ] `docker compose up` → app starts; health endpoints green.
-- [ ] `make check` (lint + mypy + tests + docs) passes locally and in CI.
-- [ ] `manage.py check --deploy` documented with all security-relevant settings.
-- [ ] No secrets in repo (hook + CI scan evidence).
-- [ ] Human approval: _pending_.
+- [x] `docker compose up` → app starts; health endpoints green — CI compose-smoke job,
+      [run #3](https://github.com/medext/core-cbs/actions/runs/29658380251) (ready 200 +
+      `X-Request-ID` asserted against the built image).
+- [x] `make check` (lint + mypy + tests + docs) passes locally and in CI — 17 tests on real
+      PostgreSQL 16 (+ Redis 7 service in CI), coverage 100% of measured code, mypy strict
+      clean, mkdocs strict green.
+- [x] `manage.py check --deploy` documented — `docs/deployment/environment-reference.md`
+      (saas: 0 issues; onprem: W021 intentional, justified).
+- [x] No secrets in repo — gitleaks full-history scan green in CI + guard-secrets hook.
+- [ ] Human approval: _pending_ (see also ADR-0009 worker-framework decision).
 
 ## Phase 2 — Tenancy, IAM & audit foundation
 

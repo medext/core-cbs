@@ -29,7 +29,12 @@
 | 1.7 | CI `.github/workflows/ci.yml` (quality, tests+PG, docs, security, compose-smoke) | ✅ written — **awaiting first green run on GitHub** |
 | 1.8 | MkDocs site + `docs/deployment/environment-reference.md` incl. `check --deploy` results | ✅ done (strict build green; saas: 0 issues, onprem: W021 intentional) |
 | 1.9 | ADR-0009 worker framework (Celery reliability profile) — Proposed | ✅ done — needs human decision at gate |
-| 1.10 | Finalize CLAUDE.md commands; full `make check`; gate report → human approval | 🔨 in progress |
+| 1.10 | Finalize CLAUDE.md commands; full `make check`; gate report → human approval | ✅ done — **gate report delivered, awaiting human approval** |
+
+**CI evidence:** run #3 all 5 jobs green (quality, tests+PG+Redis, docs, security, compose
+runtime smoke) — <https://github.com/medext/core-cbs/actions/runs/29658380251> (commit
+`f3cd6d9`). Runs #1–#2 caught two real defects fixed in `9b17097` (Dockerfile README copy)
+and `f3cd6d9` (built-in RedisCache backend).
 
 **Definition of the Phase 1 gate** (all must have executed evidence):
 `docs/product/roadmap.md` → Phase 1 Gate. Then **STOP — human approval required** before Phase 2.
