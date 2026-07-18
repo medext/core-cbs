@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment & secrets — never commit real env files
+.env
+.env.*
+!.env.example
+
+# Local dev services
+.pgdev/
+
+# Docs build
+site/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "claude/**", "phase-*/**"]
+  pull_request:
+
+env:
+  UV_FROZEN: "1"
+
+jobs:
+  quality:
+    name: Lint & types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync
+      - name: Ruff lint
+        run: uv run ruff check src tests
+      - name: Ruff format check
+        run: uv run ruff format --check src tests
+      - name: mypy (strict)
+        run: uv run mypy src tests
+
+  tests:
+    name: Tests (real PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nextcore
+          POSTGRES_PASSWORD: nextcore-ci
+          POSTGRES_DB: next_core_dev
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U nextcore"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://nextcore:nextcore-ci@127.0.0.1:5433/next_core_dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync
+      - name: pytest + coverage
+        run: |
+          uv run coverage run -m pytest tests
+          uv run coverage report
+      - name: Migration check (no un-generated migrations)
+        run: uv run python manage.py makemigrations --check --dry-run
+        env:
+          NEXT_CORE_PROFILE: local
+
+  docs:
+    name: Docs build (strict)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync
+      - run: uv run mkdocs build --strict
+
+  security:
+    name: Security scans
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync
+      - name: Bandit (SAST)
+        run: uv run bandit -c pyproject.toml -r src
+      - name: pip-audit (dependency vulnerabilities)
+        run: |
+          uv export --frozen --no-emit-project --no-dev -o requirements-audit.txt
+          uv run pip-audit -r requirements-audit.txt --disable-pip
+      - name: Gitleaks (secret scan, full history)
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:latest \
+            detect --source /repo --log-opts="--all" --redact --exit-code 1
+
+  compose-smoke:
+    name: Compose runtime smoke (app + postgres + redis)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start stack
+        run: docker compose up -d --build postgres redis app
+      - name: Wait for readiness and assert health
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /tmp/ready.json -w "%{http_code}" http://127.0.0.1:8000/health/ready || true)
+            if [ "$code" = "200" ]; then cat /tmp/ready.json; exit 0; fi
+            sleep 2
+          done
+          echo "readiness never became 200"; docker compose logs app | tail -50; exit 1
+      - name: Liveness + correlation header present
+        run: |
+          curl -sfi http://127.0.0.1:8000/health/live | tee /tmp/live.txt
+          grep -i "X-Request-ID" /tmp/live.txt
+      - name: Teardown
+        if: always()
+        run: docker compose down -v

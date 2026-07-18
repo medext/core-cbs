@@ -5,7 +5,7 @@
 > work it describes (same-change rule). If you are Claude Code starting a fresh session:
 > read this file first, then `CLAUDE.md`, then follow "How to resume" below.
 
-**Last updated:** 2026-07-18 · **Branch:** `claude/core-banking-prd-structure-ty3inr`
+**Last updated:** 2026-07-18 (evening) · **Branch:** `claude/core-banking-prd-structure-ty3inr`
 
 ## Where the project stands
 
@@ -20,16 +20,16 @@
 | # | Slice | Status |
 |---|---|---|
 | 1.0 | Record Phase 0 approval (roadmap, ADRs → Accepted) | ✅ done |
-| 1.1 | STATUS.md + session-handoff protocol in CLAUDE.md | 🔨 in progress |
-| 1.2 | Toolchain: pyproject (uv), Makefile, .pre-commit-config, .gitignore, .env.example | ⬜ next |
-| 1.3 | Django skeleton: settings profiles (local/saas/onprem/test), urls/wsgi/asgi, manage.py | ⬜ |
-| 1.4 | platform: structlog JSON logging + correlation-ID middleware, OTel bootstrap | ⬜ |
-| 1.5 | Health endpoints `/health/live` + `/health/ready` + tests (unit + real-PG integration) | ⬜ |
-| 1.6 | deploy/docker/Dockerfile + compose.yaml (postgres 16, redis 7, app; keycloak behind `iam` profile) | ⬜ |
-| 1.7 | CI `.github/workflows/ci.yml` (ruff, mypy, pytest+PG service, migration check, mkdocs, bandit, pip-audit, gitleaks, compose smoke) | ⬜ |
-| 1.8 | MkDocs site (mkdocs.yml) + `docs/deployment/environment-reference.md` incl. `check --deploy` results | ⬜ |
-| 1.9 | ADR-0009 worker framework (OD-5) — Proposed status | ⬜ |
-| 1.10 | Finalize CLAUDE.md commands section; run full local verification; gate report | ⬜ |
+| 1.1 | STATUS.md + session-handoff protocol in CLAUDE.md | ✅ done |
+| 1.2 | Toolchain: pyproject (uv), Makefile, .pre-commit-config, .gitignore, .env.example | ✅ done |
+| 1.3 | Django skeleton: settings profiles (local/saas/onprem/test), urls/wsgi/asgi, manage.py | ✅ done |
+| 1.4 | platform: structlog JSON logging + correlation-ID middleware, OTel bootstrap | ✅ done |
+| 1.5 | Health endpoints `/health/live` + `/health/ready` + tests (17 passing, 100% coverage) | ✅ done |
+| 1.6 | deploy/docker/Dockerfile + compose.yaml (postgres 16, redis 7, app; keycloak behind `iam` profile) | ✅ done (`config` validated; runtime proof = CI compose-smoke) |
+| 1.7 | CI `.github/workflows/ci.yml` (quality, tests+PG, docs, security, compose-smoke) | ✅ written — **awaiting first green run on GitHub** |
+| 1.8 | MkDocs site + `docs/deployment/environment-reference.md` incl. `check --deploy` results | ✅ done (strict build green; saas: 0 issues, onprem: W021 intentional) |
+| 1.9 | ADR-0009 worker framework (Celery reliability profile) — Proposed | ✅ done — needs human decision at gate |
+| 1.10 | Finalize CLAUDE.md commands; full `make check`; gate report → human approval | 🔨 in progress |
 
 **Definition of the Phase 1 gate** (all must have executed evidence):
 `docs/product/roadmap.md` → Phase 1 Gate. Then **STOP — human approval required** before Phase 2.

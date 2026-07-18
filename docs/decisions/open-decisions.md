@@ -16,7 +16,7 @@ decision) · `Deferred` (explicitly later, with trigger).
 | OD-2 | Regulatory reporting formats per jurisdiction | **Deferred** | Extract/data surface in core; format packs as `integrations` extensions. Trigger: first committed market. | Human | Market entry |
 | OD-3 | Product name / repo naming | **Assumption** | Product "Next Core", repo `medext/core-cbs` — documented in repo-structure deviations. | Human | Anytime |
 | OD-4 | FX depth for MVP | **Recommended** | Same-currency operations only through Phase 5; FX bridge modeled (accounts + rate reference) but inactive. Consequence: no cross-currency transfers in MVP. | Human | Phase 5 gate |
-| OD-5 | Worker framework (Celery vs. Dramatiq) | **Open** | Decided by ADR in Phase 1 (evaluation criteria: reliability semantics, observability, on-prem simplicity). | Eng | Phase 1 |
+| OD-5 | Worker framework (Celery vs. Dramatiq) | **Recommended** | ADR-0009 proposes Celery with a mandatory reliability profile (acks_late, reject-on-worker-lost, explicit queues). Human approval at Phase 1 gate; wired in Phase 3. | Human | Phase 1 gate |
 | OD-6 | OpenAPI tooling | **Recommended** | drf-spectacular (OpenAPI 3.1) — confirm in Phase 1 with version check. | Eng | Phase 1 |
 | OD-7 | Business-date default cutover & calendar seed | **Assumption** | Tenant-configurable calendar; default Mon–Fri + configurable holidays; single business date per tenant (no branch-level dates in MVP). Consequence: branch-level day management deferred. | Human | Phase 7 |
 | OD-8 | Idempotency & audit retention horizons | **Assumption** | 10 years for financial records/audit/idempotency (conservative bank-grade default); consequence: storage archival tooling needed by Phase 9. Confirm against target-market law. | Human | Phase 9 |

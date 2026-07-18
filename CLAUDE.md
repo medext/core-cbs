@@ -19,14 +19,14 @@ acceptance gate before starting any work. Never skip a phase gate.
 
 ## Commands
 
-> Phase 1 will introduce the toolchain. Until then these are the canonical commands; do not
-> invent alternatives.
+Canonical commands — do not invent alternatives:
 
-- Install: `uv sync` *(Phase 1+)*
+- Install: `uv sync`
 - Lint: `make lint` (Ruff) · Types: `make typecheck` (mypy strict) · Format: `make format`
-- Tests: `make test` · Targeted: `uv run pytest <path> -x` *(real PostgreSQL via compose/Testcontainers)*
+- Tests: `make test` · Targeted: `uv run pytest <path> -x` (**real PostgreSQL** — start it
+  with `make test-db-start` when Docker is unavailable; compose service otherwise)
 - Full gate: `make check` (lint + types + tests + docs build)
-- Docs: `make docs` (MkDocs)
+- Docs: `make docs` (MkDocs, strict) · Run app: `make run` · Stack: `docker compose up`
 
 ## Architecture boundaries
 

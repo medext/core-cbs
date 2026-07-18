@@ -85,7 +85,15 @@ data-plane contexts; `platform` imports nothing of next_core.
 | `.github/workflows/` added | CI is part of the engineering foundation (Phase 1 gate). |
 | Repo root name `core-cbs` (not `next-core`) | GitHub repository already named `medext/core-cbs`; product name remains Next Core. |
 
-## Phase 0 state
+## Current state (Phase 1)
 
-Only `CLAUDE.md`, `README.md`, `.claude/`, and `docs/` exist — intentionally. Empty scaffold
-directories are not created ahead of the phase that fills them (no dead structure to drift).
+Materialized: `CLAUDE.md`, `README.md`, `STATUS.md`, `.claude/`, `docs/` + `mkdocs.yml`,
+`pyproject.toml`/`uv.lock`, `Makefile`, `compose.yaml`, `.github/workflows/ci.yml`,
+`manage.py`, `deploy/docker/`, and under `src/next_core/`: `settings/` (base + local/saas/
+onprem/test profiles), `platform/` (logging, telemetry, `health/` app), `urls.py`,
+`wsgi.py`/`asgi.py`; `tests/unit/` + `tests/integration/`.
+
+Bounded-context packages (`ledger/`, `transactions/`, `tenancy/`, …) are **not** created
+ahead of their owning phase — no dead structure to drift. Each context appears with its
+phase (tenancy/control_plane/iam/audit in Phase 2, ledger in Phase 3, …). Import-linter
+boundary contracts land with the first multi-context phase (Phase 2).

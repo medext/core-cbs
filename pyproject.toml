@@ -1,0 +1,119 @@
+[project]
+name = "next-core"
+version = "0.1.0"
+description = "Next Core — bank-grade lightweight core banking system (modular monolith)"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "Proprietary" }
+dependencies = [
+    "django>=5.2,<5.3",
+    "djangorestframework>=3.16",
+    "psycopg[binary]>=3.2",
+    "django-environ>=0.12",
+    "structlog>=25.1",
+    "gunicorn>=23.0",
+    "opentelemetry-sdk>=1.34",
+    "opentelemetry-instrumentation-django>=0.55b0",
+    "opentelemetry-exporter-otlp-proto-http>=1.34",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12",
+    "mypy>=1.16",
+    "django-stubs[compatible-mypy]>=5.2",
+    "djangorestframework-stubs>=3.16",
+    "pytest>=8.3",
+    "pytest-django>=4.11",
+    "hypothesis>=6.135",
+    "coverage[toml]>=7.9",
+    "pre-commit>=4.2",
+    "bandit>=1.8",
+    "pip-audit>=2.9",
+    "mkdocs-material>=9.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/next_core"]
+
+# ---------------------------------------------------------------------------- lint & format
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",      # pycodestyle / pyflakes
+    "I",                 # isort
+    "N",                 # pep8-naming
+    "UP",                # pyupgrade
+    "B",                 # bugbear
+    "C4",                # comprehensions
+    "DTZ",               # naive datetimes are forbidden
+    "T20",               # no stray print()
+    "SIM",               # simplify
+    "RUF",
+]
+# Money safety: float literals near money are caught in review; DTZ + B guard common defects.
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["T20"]
+
+# ---------------------------------------------------------------------------- typing
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+mypy_path = "src"
+exclude = ["^docs/", "^deploy/"]
+warn_unreachable = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["environ", "environ.*"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "next_core.settings.test"
+
+# ---------------------------------------------------------------------------- tests
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "next_core.settings.test"
+testpaths = ["tests"]
+addopts = "--strict-markers --strict-config -ra"
+markers = [
+    "integration: requires a real PostgreSQL database",
+]
+filterwarnings = ["error::DeprecationWarning:next_core.*"]
+
+[tool.coverage.run]
+source = ["next_core"]
+branch = true
+# Entry-point wiring and non-test settings profiles execute in subprocesses (profile tests)
+# or at server boot (runserver/compose smoke) — coverage cannot observe them in-process.
+# They are verified by tests/integration/test_settings_profiles.py and the CI compose job.
+omit = [
+    "src/next_core/wsgi.py",
+    "src/next_core/asgi.py",
+    "src/next_core/settings/local.py",
+    "src/next_core/settings/saas.py",
+    "src/next_core/settings/onprem.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 90
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
+
+# ---------------------------------------------------------------------------- security
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
