@@ -5,7 +5,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project --no-dev
 COPY src ./src
-COPY manage.py ./
+COPY manage.py README.md ./
 RUN uv sync --frozen --no-dev
 
 FROM python:3.13-slim-bookworm AS runtime
