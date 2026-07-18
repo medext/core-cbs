@@ -44,10 +44,12 @@ if not DATABASES["default"]["ENGINE"].endswith("postgresql"):  # pragma: no cove
     raise RuntimeError("DATABASE_URL must point to PostgreSQL (ADR-0003).")
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("DATABASE_CONN_MAX_AGE", default=60)
 
+# Django's built-in Redis backend (not django-redis, which env.cache_url would select).
+_redis_url = env("REDIS_URL", default="")
 CACHES = {
     "default": (
-        env.cache_url("REDIS_URL")
-        if env("REDIS_URL", default="")
+        {"BACKEND": "django.core.cache.backends.redis.RedisCache", "LOCATION": _redis_url}
+        if _redis_url
         else {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
     )
 }

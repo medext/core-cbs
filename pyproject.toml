@@ -11,6 +11,7 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "django-environ>=0.12",
     "structlog>=25.1",
+    "redis>=5.0",
     "gunicorn>=23.0",
     "opentelemetry-sdk>=1.34",
     "opentelemetry-instrumentation-django>=0.55b0",
