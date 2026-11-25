@@ -1,9 +1,10 @@
 from django.urls import include, path
 from drf_spectacular.views import SpectacularJSONAPIView, SpectacularRedocView
 
-from next_core.ledger.urls import operations
+from next_core.ledger.urls import operations as ledger_operations
 from next_core.ledger.urls import urlpatterns as ledger
 from next_core.transactions.urls import holds, loans, transactions
+from next_core.transactions.urls import operations as txn_operations
 
 urlpatterns = [
     path("health/", include("next_core.platform.health.urls")),
@@ -19,5 +20,6 @@ urlpatterns = [
     path("api/v1/", include(holds)),
     path("api/v1/", include(loans)),
     path("api/v1/", include(ledger)),
-    path("api/v1/", include(operations)),
+    path("api/v1/", include(ledger_operations)),
+    path("api/v1/", include(txn_operations)),
 ]

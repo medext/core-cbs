@@ -6,6 +6,7 @@ status + body with ``Idempotent-Replayed: true``; same key + different payload â
 replayed identically."""
 
 from collections.abc import Callable
+from datetime import date
 from typing import Any
 from uuid import UUID
 
@@ -17,11 +18,13 @@ from rest_framework.response import Response
 from next_core.accounts.application import get_account
 from next_core.iam.permissions import (
     HOLDS_MANAGE,
+    OPERATIONS_RUN,
     TRANSACTIONS_POST,
     TRANSACTIONS_READ,
     TRANSACTIONS_REVERSE,
 )
 from next_core.iam.views import DataPlaneView
+from next_core.platform import clock
 from next_core.platform.api import (
     IDEMPOTENCY_HEADER,
     OBJ,
@@ -549,3 +552,35 @@ class SimulateView(DataPlaneView):
             return out
 
         return Response(svc.simulate(work, balances))
+
+
+class EodSerializer(StrictSerializer):
+    business_date = serializers.DateField(required=False)
+
+
+class EodView(DataPlaneView):
+    method_permissions = {"POST": OPERATIONS_RUN}
+
+    @extend_schema(
+        tags=["Operations"],
+        summary="Run EoD steps: hold expiry + interest accrual/capitalization (idempotent)",
+        request=EodSerializer,
+        responses={200: OBJ},
+    )
+    def post(self, request: Request) -> Response:
+        ser = EodSerializer(data=request.data or {})
+        ser.is_valid(raise_exception=True)
+        on: date = ser.validated_data.get("business_date") or clock.business_date()
+        actor = actor_from(request)
+        expired = svc.expire_holds(actor)
+        summary = svc.run_interest(on, actor)
+        body: dict[str, Any] = {
+            "business_date": on.isoformat(),
+            "holds_expired": expired,
+            "interest": {
+                "accounts_considered": summary.accounts_considered,
+                "accrued": summary.accrued,
+                "capitalized": summary.capitalized,
+            },
+        }
+        return Response(body)

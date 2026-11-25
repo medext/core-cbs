@@ -1,0 +1,5281 @@
+{
+  "components": {
+    "schemas": {
+      "Account": {
+        "properties": {
+          "balance_side": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "category": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "closed_on": {
+            "format": "date",
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "credit_blocked": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "currency": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "debit_blocked": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "last_activity_on": {
+            "format": "date",
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "maturity_date": {
+            "format": "date",
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nickname": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "number": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "opened_on": {
+            "format": "date",
+            "readOnly": true,
+            "type": "string"
+          },
+          "parameter_overrides": {
+            "readOnly": true
+          },
+          "party_id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "product_code": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "product_version_id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccountStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "version": {
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "balance_side",
+          "category",
+          "closed_on",
+          "created_at",
+          "credit_blocked",
+          "currency",
+          "debit_blocked",
+          "id",
+          "last_activity_on",
+          "maturity_date",
+          "nickname",
+          "number",
+          "opened_on",
+          "parameter_overrides",
+          "party_id",
+          "product_code",
+          "product_id",
+          "product_version_id",
+          "status",
+          "version"
+        ],
+        "type": "object"
+      },
+      "AccountDetail": {
+        "properties": {
+          "balance_side": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "balances": {
+            "items": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "category": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "closed_on": {
+            "format": "date",
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "credit_blocked": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "currency": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "debit_blocked": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "last_activity_on": {
+            "format": "date",
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "maturity_date": {
+            "format": "date",
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nickname": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "number": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "opened_on": {
+            "format": "date",
+            "readOnly": true,
+            "type": "string"
+          },
+          "parameter_overrides": {
+            "readOnly": true
+          },
+          "party_id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "product_code": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "product_version_id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccountStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "version": {
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "balance_side",
+          "balances",
+          "category",
+          "closed_on",
+          "created_at",
+          "credit_blocked",
+          "currency",
+          "debit_blocked",
+          "id",
+          "last_activity_on",
+          "maturity_date",
+          "nickname",
+          "number",
+          "opened_on",
+          "parameter_overrides",
+          "party_id",
+          "product_code",
+          "product_id",
+          "product_version_id",
+          "status",
+          "version"
+        ],
+        "type": "object"
+      },
+      "AccountOpRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "amount": {
+            "description": "Decimal string, e.g. \"150.00\".",
+            "maxLength": 24,
+            "minLength": 1,
+            "type": "string"
+          },
+          "channel": {
+            "default": "API",
+            "minLength": 1,
+            "pattern": "^[A-Z_]{2,20}$",
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyEnum"
+          },
+          "narrative": {
+            "default": "",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reference": {
+            "default": "",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "amount",
+          "currency"
+        ],
+        "type": "object"
+      },
+      "AccountStatusEnum": {
+        "description": "* `ACTIVE` - Active\n* `FROZEN` - Frozen\n* `DORMANT` - Dormant\n* `CLOSED` - Closed",
+        "enum": [
+          "ACTIVE",
+          "FROZEN",
+          "DORMANT",
+          "CLOSED"
+        ],
+        "type": "string"
+      },
+      "ActorTypeEnum": {
+        "description": "* `USER` - User\n* `SERVICE` - Service\n* `SYSTEM` - System",
+        "enum": [
+          "USER",
+          "SERVICE",
+          "SYSTEM"
+        ],
+        "type": "string"
+      },
+      "AuditEvent": {
+        "properties": {
+          "actor": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "actor_type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActorTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "correlation_id": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "operation": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "payload": {
+            "readOnly": true
+          },
+          "resource_id": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "resource_type": {
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "actor",
+          "actor_type",
+          "correlation_id",
+          "id",
+          "occurred_at",
+          "operation",
+          "payload",
+          "resource_id",
+          "resource_type"
+        ],
+        "type": "object"
+      },
+      "BlocksRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "credit_blocked": {
+            "type": "boolean"
+          },
+          "debit_blocked": {
+            "type": "boolean"
+          },
+          "reason": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "credit_blocked",
+          "debit_blocked",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "CaptureRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "amount": {
+            "maxLength": 24,
+            "minLength": 1,
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyEnum"
+          },
+          "target_account_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_account_id"
+        ],
+        "type": "object"
+      },
+      "CurrencyEnum": {
+        "description": "* `EUR` - EUR\n* `MRU` - MRU\n* `TND` - TND\n* `USD` - USD\n* `XOF` - XOF",
+        "enum": [
+          "EUR",
+          "MRU",
+          "TND",
+          "USD",
+          "XOF"
+        ],
+        "type": "string"
+      },
+      "DecisionRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "reason": {
+            "default": "",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DefinitionRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "definition": {}
+        },
+        "required": [
+          "definition"
+        ],
+        "type": "object"
+      },
+      "DisbursementRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "amount": {
+            "description": "Decimal string, e.g. \"150.00\".",
+            "maxLength": 24,
+            "minLength": 1,
+            "type": "string"
+          },
+          "channel": {
+            "default": "API",
+            "minLength": 1,
+            "pattern": "^[A-Z_]{2,20}$",
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyEnum"
+          },
+          "narrative": {
+            "default": "",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reference": {
+            "default": "",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "target_account_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency",
+          "target_account_id"
+        ],
+        "type": "object"
+      },
+      "EodRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "business_date": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "HoldRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "amount": {
+            "description": "Decimal string, e.g. \"150.00\".",
+            "maxLength": 24,
+            "minLength": 1,
+            "type": "string"
+          },
+          "channel": {
+            "default": "API",
+            "minLength": 1,
+            "pattern": "^[A-Z_]{2,20}$",
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyEnum"
+          },
+          "expires_in_seconds": {
+            "default": 604800,
+            "maximum": 2592000,
+            "minimum": 60,
+            "type": "integer"
+          },
+          "narrative": {
+            "default": "",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reference": {
+            "default": "",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "amount",
+          "currency"
+        ],
+        "type": "object"
+      },
+      "IdentifierRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "issuing_country": {
+            "default": "",
+            "minLength": 1,
+            "pattern": "^[A-Z]{2}$",
+            "type": "string"
+          },
+          "scheme": {
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]{1,29}$",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "scheme",
+          "value"
+        ],
+        "type": "object"
+      },
+      "KycRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "level": {
+            "maximum": 3,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "reference": {
+            "default": "",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/KycStatusEnum"
+          }
+        },
+        "required": [
+          "level",
+          "status"
+        ],
+        "type": "object"
+      },
+      "KycStatusEnum": {
+        "description": "* `NOT_STARTED` - Not Started\n* `PENDING` - Pending\n* `VERIFIED` - Verified\n* `REJECTED` - Rejected",
+        "enum": [
+          "NOT_STARTED",
+          "PENDING",
+          "VERIFIED",
+          "REJECTED"
+        ],
+        "type": "string"
+      },
+      "OpenAccountRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyEnum"
+          },
+          "nickname": {
+            "default": "",
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "parameter_overrides": {},
+          "party_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency",
+          "party_id",
+          "product_id"
+        ],
+        "type": "object"
+      },
+      "OperationEnum": {
+        "description": "* `DEPOSIT` - DEPOSIT\n* `WITHDRAWAL` - WITHDRAWAL\n* `TRANSFER_OUT` - TRANSFER_OUT\n* `TRANSFER_IN` - TRANSFER_IN\n* `HOLD` - HOLD\n* `DISBURSEMENT` - DISBURSEMENT\n* `REPAYMENT` - REPAYMENT",
+        "enum": [
+          "DEPOSIT",
+          "WITHDRAWAL",
+          "TRANSFER_OUT",
+          "TRANSFER_IN",
+          "HOLD",
+          "DISBURSEMENT",
+          "REPAYMENT"
+        ],
+        "type": "string"
+      },
+      "PaginatedAuditEventList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEvent"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "Party": {
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "display_name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "readOnly": true,
+            "type": "string"
+          },
+          "external_ref": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "family_name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "given_name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "identifiers": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "kyc_level": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "kyc_reference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "kyc_status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KycStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "legal_name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "nationality": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "phone": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "registration_number": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "residence_country": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "risk_rating": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RiskRatingEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PartyStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PartyTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "updated_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "version": {
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "birth_date",
+          "created_at",
+          "display_name",
+          "email",
+          "external_ref",
+          "family_name",
+          "given_name",
+          "id",
+          "identifiers",
+          "kyc_level",
+          "kyc_reference",
+          "kyc_status",
+          "legal_name",
+          "nationality",
+          "phone",
+          "registration_number",
+          "residence_country",
+          "risk_rating",
+          "status",
+          "type",
+          "updated_at",
+          "version"
+        ],
+        "type": "object"
+      },
+      "PartyStatusEnum": {
+        "description": "* `ACTIVE` - Active\n* `BLOCKED` - Blocked\n* `DECEASED` - Deceased\n* `CLOSED` - Closed",
+        "enum": [
+          "ACTIVE",
+          "BLOCKED",
+          "DECEASED",
+          "CLOSED"
+        ],
+        "type": "string"
+      },
+      "PartyStatusRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "reason": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PartyStatusEnum"
+          }
+        },
+        "required": [
+          "reason",
+          "status"
+        ],
+        "type": "object"
+      },
+      "PartyTypeEnum": {
+        "description": "* `INDIVIDUAL` - Individual\n* `ORGANIZATION` - Organization",
+        "enum": [
+          "INDIVIDUAL",
+          "ORGANIZATION"
+        ],
+        "type": "string"
+      },
+      "PartyWriteRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "email": {
+            "default": "",
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          },
+          "external_ref": {
+            "default": "",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "family_name": {
+            "default": "",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "given_name": {
+            "default": "",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "identifiers": {
+            "items": {
+              "$ref": "#/components/schemas/IdentifierRequest"
+            },
+            "type": "array"
+          },
+          "legal_name": {
+            "default": "",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "nationality": {
+            "default": "",
+            "minLength": 1,
+            "pattern": "^[A-Z]{2}$",
+            "type": "string"
+          },
+          "phone": {
+            "default": "",
+            "minLength": 1,
+            "pattern": "^\\+?[0-9 ]{4,20}$",
+            "type": "string"
+          },
+          "registration_number": {
+            "default": "",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "residence_country": {
+            "default": "",
+            "minLength": 1,
+            "pattern": "^[A-Z]{2}$",
+            "type": "string"
+          },
+          "risk_rating": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RiskRatingEnum"
+              }
+            ],
+            "default": "LOW"
+          },
+          "type": {
+            "$ref": "#/components/schemas/PartyTypeEnum"
+          }
+        },
+        "required": [
+          "display_name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "PatchedPartyPatchRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          },
+          "external_ref": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "family_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "given_name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "legal_name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "nationality": {
+            "minLength": 1,
+            "pattern": "^[A-Z]{2}$",
+            "type": "string"
+          },
+          "phone": {
+            "minLength": 1,
+            "pattern": "^\\+?[0-9 ]{4,20}$",
+            "type": "string"
+          },
+          "registration_number": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "residence_country": {
+            "minLength": 1,
+            "pattern": "^[A-Z]{2}$",
+            "type": "string"
+          },
+          "risk_rating": {
+            "$ref": "#/components/schemas/RiskRatingEnum"
+          }
+        },
+        "type": "object"
+      },
+      "Product": {
+        "properties": {
+          "active_version": {
+            "readOnly": true,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "category": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "code": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "description": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "versions": {
+            "items": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "readOnly": true,
+            "type": "array"
+          }
+        },
+        "required": [
+          "active_version",
+          "category",
+          "code",
+          "created_at",
+          "description",
+          "id",
+          "name",
+          "versions"
+        ],
+        "type": "object"
+      },
+      "ProductCreateRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "code": {
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{1,39}$",
+            "type": "string"
+          },
+          "definition": {},
+          "description": {
+            "default": "",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "definition",
+          "name"
+        ],
+        "type": "object"
+      },
+      "RepaymentRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "amount": {
+            "description": "Decimal string, e.g. \"150.00\".",
+            "maxLength": 24,
+            "minLength": 1,
+            "type": "string"
+          },
+          "channel": {
+            "default": "API",
+            "minLength": 1,
+            "pattern": "^[A-Z_]{2,20}$",
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyEnum"
+          },
+          "narrative": {
+            "default": "",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reference": {
+            "default": "",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_account_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency",
+          "source_account_id"
+        ],
+        "type": "object"
+      },
+      "ReversalRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "reason": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
+      "RiskRatingEnum": {
+        "description": "* `LOW` - Low\n* `MEDIUM` - Medium\n* `HIGH` - High",
+        "enum": [
+          "LOW",
+          "MEDIUM",
+          "HIGH"
+        ],
+        "type": "string"
+      },
+      "SimulateRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "amount": {
+            "description": "Decimal string, e.g. \"150.00\".",
+            "maxLength": 24,
+            "minLength": 1,
+            "type": "string"
+          },
+          "channel": {
+            "default": "API",
+            "minLength": 1,
+            "pattern": "^[A-Z_]{2,20}$",
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyEnum"
+          },
+          "expires_in_seconds": {
+            "default": 3600,
+            "maximum": 2592000,
+            "minimum": 60,
+            "type": "integer"
+          },
+          "narrative": {
+            "default": "",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reference": {
+            "default": "",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_account_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "target_account_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/SimulateTypeEnum"
+          }
+        },
+        "required": [
+          "amount",
+          "currency",
+          "type"
+        ],
+        "type": "object"
+      },
+      "SimulateTypeEnum": {
+        "description": "* `DEPOSIT` - DEPOSIT\n* `WITHDRAWAL` - WITHDRAWAL\n* `TRANSFER` - TRANSFER\n* `DISBURSEMENT` - DISBURSEMENT\n* `REPAYMENT` - REPAYMENT\n* `HOLD` - HOLD",
+        "enum": [
+          "DEPOSIT",
+          "WITHDRAWAL",
+          "TRANSFER",
+          "DISBURSEMENT",
+          "REPAYMENT",
+          "HOLD"
+        ],
+        "type": "string"
+      },
+      "SimulationRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "account_age_days": {
+            "default": 0,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "amount": {
+            "maxLength": 24,
+            "minLength": 1,
+            "type": "string"
+          },
+          "book_balance": {
+            "default": "0",
+            "maxLength": 24,
+            "minLength": 1,
+            "type": "string"
+          },
+          "channel": {
+            "default": "API",
+            "maxLength": 20,
+            "minLength": 1,
+            "type": "string"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 1,
+            "type": "string"
+          },
+          "days_to_maturity": {
+            "default": -1,
+            "type": "integer"
+          },
+          "kyc_level": {
+            "default": 1,
+            "maximum": 3,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/OperationEnum"
+          },
+          "parameter_overrides": {},
+          "version": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "amount",
+          "currency",
+          "operation"
+        ],
+        "type": "object"
+      },
+      "StatusRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "reason": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountStatusEnum"
+          }
+        },
+        "required": [
+          "reason",
+          "status"
+        ],
+        "type": "object"
+      },
+      "TransactionOut": {
+        "description": "Documentation shape of a business transaction (see transactions.application.to_dict).",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "business_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "credit_account_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "debit_account_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fees": {
+            "items": {
+              "additionalProperties": {},
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "funds_reserved": {
+            "type": "boolean"
+          },
+          "hold": {
+            "additionalProperties": {},
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "is_terminal": {
+            "type": "boolean"
+          },
+          "journal_entry_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "narrative": {
+            "type": "string"
+          },
+          "product_versions": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "rejection": {
+            "additionalProperties": {},
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "reversal_of": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reversed_by": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/TxnStateEnum"
+          },
+          "total_fees": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TxnTypeEnum"
+          },
+          "value_date": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "business_date",
+          "channel",
+          "created_at",
+          "credit_account_id",
+          "currency",
+          "debit_account_id",
+          "fees",
+          "funds_reserved",
+          "hold",
+          "id",
+          "is_terminal",
+          "journal_entry_ids",
+          "narrative",
+          "product_versions",
+          "reference",
+          "rejection",
+          "reversal_of",
+          "reversed_by",
+          "state",
+          "total_fees",
+          "type",
+          "value_date"
+        ],
+        "type": "object"
+      },
+      "TransferRequest": {
+        "description": "Rejects unknown fields (mass-assignment protection; API standards).",
+        "properties": {
+          "amount": {
+            "description": "Decimal string, e.g. \"150.00\".",
+            "maxLength": 24,
+            "minLength": 1,
+            "type": "string"
+          },
+          "channel": {
+            "default": "API",
+            "minLength": 1,
+            "pattern": "^[A-Z_]{2,20}$",
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyEnum"
+          },
+          "narrative": {
+            "default": "",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reference": {
+            "default": "",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_account_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "target_account_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency",
+          "source_account_id",
+          "target_account_id"
+        ],
+        "type": "object"
+      },
+      "TxnStateEnum": {
+        "description": "* `RECEIVED` - Received\n* `VALIDATING` - Validating\n* `REJECTED` - Rejected\n* `AUTHORIZED` - Authorized\n* `HELD` - Held\n* `POSTED` - Posted\n* `SETTLED` - Settled\n* `REVERSED` - Reversed\n* `VOIDED` - Voided\n* `FAILED` - Failed",
+        "enum": [
+          "RECEIVED",
+          "VALIDATING",
+          "REJECTED",
+          "AUTHORIZED",
+          "HELD",
+          "POSTED",
+          "SETTLED",
+          "REVERSED",
+          "VOIDED",
+          "FAILED"
+        ],
+        "type": "string"
+      },
+      "TxnTypeEnum": {
+        "description": "* `DEPOSIT` - Deposit\n* `WITHDRAWAL` - Withdrawal\n* `TRANSFER` - Transfer\n* `HOLD` - Hold\n* `DISBURSEMENT` - Disbursement\n* `REPAYMENT` - Repayment\n* `REVERSAL` - Reversal\n* `INTEREST_ACCRUAL` - Interest Accrual\n* `INTEREST_CAPITALIZATION` - Interest Capitalization",
+        "enum": [
+          "DEPOSIT",
+          "WITHDRAWAL",
+          "TRANSFER",
+          "HOLD",
+          "DISBURSEMENT",
+          "REPAYMENT",
+          "REVERSAL",
+          "INTEREST_ACCRUAL",
+          "INTEREST_CAPITALIZATION"
+        ],
+        "type": "string"
+      },
+      "Version": {
+        "properties": {
+          "approved_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "approved_by": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "created_by": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "decision_reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "definition": {
+            "readOnly": true
+          },
+          "definition_hash": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "effective_from": {
+            "format": "date",
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submitted_by": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "version": {
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "approved_at",
+          "approved_by",
+          "created_at",
+          "created_by",
+          "decision_reason",
+          "definition",
+          "definition_hash",
+          "effective_from",
+          "id",
+          "product_id",
+          "status",
+          "submitted_by",
+          "updated_at",
+          "version"
+        ],
+        "type": "object"
+      },
+      "VersionStatusEnum": {
+        "description": "* `DRAFT` - Draft\n* `PENDING_APPROVAL` - Pending Approval\n* `ACTIVE` - Active\n* `SUPERSEDED` - Superseded\n* `REJECTED` - Rejected\n* `RETIRED` - Retired",
+        "enum": [
+          "DRAFT",
+          "PENDING_APPROVAL",
+          "ACTIVE",
+          "SUPERSEDED",
+          "REJECTED",
+          "RETIRED"
+        ],
+        "type": "string"
+      }
+    },
+    "securitySchemes": {
+      "oidc": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Core banking API v1. Every data-plane call carries a tenant (X-Tenant-ID header in SaaS-dev/staging) and an OAuth2 bearer token. Financial writes require an Idempotency-Key header. Amounts are decimal strings in major units with the currency exponent (ADR-0004). Errors are RFC 9457 problem details.",
+    "title": "Next Core API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/accounts": {
+      "get": {
+        "operationId": "accounts_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "currency",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "number",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "party_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product_code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Account"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "List accounts",
+        "tags": [
+          "Accounts"
+        ]
+      },
+      "post": {
+        "operationId": "accounts_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Open an account on the product's ACTIVE version",
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}": {
+      "get": {
+        "operationId": "accounts_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Get an account with its balances",
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}/balances": {
+      "get": {
+        "operationId": "accounts_balances_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Qualified balances (book/available/held/\u2026)",
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}/blocks": {
+      "post": {
+        "operationId": "accounts_blocks_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlocksRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Set debit/credit blocks",
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}/history": {
+      "get": {
+        "operationId": "accounts_history_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Status & block history (append-only)",
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}/limits": {
+      "get": {
+        "operationId": "accounts_limits_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Current limit usage (windowed limits)",
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}/statement": {
+      "get": {
+        "operationId": "accounts_statement_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "PRINCIPAL (default) or ACCRUED_INTEREST",
+            "in": "query",
+            "name": "purpose",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Statement: postings with running book balance (cursor = posting id)",
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}/status": {
+      "post": {
+        "operationId": "accounts_status_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Change status (ACTIVE/FROZEN/DORMANT/CLOSED)",
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/api/v1/audit/events": {
+      "get": {
+        "operationId": "audit_events_list",
+        "parameters": [
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAuditEventList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/holds": {
+      "post": {
+        "operationId": "holds_create",
+        "parameters": [
+          {
+            "description": "Client-generated key; always retry with the same key.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Place a hold (authorization)",
+        "tags": [
+          "Holds"
+        ]
+      }
+    },
+    "/api/v1/holds/{hold_id}": {
+      "get": {
+        "operationId": "holds_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hold_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Get a hold's transaction",
+        "tags": [
+          "Holds"
+        ]
+      }
+    },
+    "/api/v1/holds/{hold_id}/capture": {
+      "post": {
+        "operationId": "holds_capture_create",
+        "parameters": [
+          {
+            "description": "Client-generated key; always retry with the same key.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "hold_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Capture a hold (full or partial; remainder released)",
+        "tags": [
+          "Holds"
+        ]
+      }
+    },
+    "/api/v1/holds/{hold_id}/release": {
+      "post": {
+        "operationId": "holds_release_create",
+        "parameters": [
+          {
+            "description": "Client-generated key; always retry with the same key.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "hold_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Release a hold",
+        "tags": [
+          "Holds"
+        ]
+      }
+    },
+    "/api/v1/ledger/entries/{entry_id}": {
+      "get": {
+        "operationId": "ledger_entries_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Journal entry with postings",
+        "tags": [
+          "Ledger"
+        ]
+      }
+    },
+    "/api/v1/ledger/gl-accounts": {
+      "get": {
+        "operationId": "ledger_gl_accounts_retrieve",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Chart of accounts",
+        "tags": [
+          "Ledger"
+        ]
+      }
+    },
+    "/api/v1/ledger/trial-balance": {
+      "get": {
+        "operationId": "ledger_trial_balance_retrieve",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Trial balance per GL account and currency",
+        "tags": [
+          "Ledger"
+        ]
+      }
+    },
+    "/api/v1/loans/{account_id}/disbursements": {
+      "post": {
+        "operationId": "loans_disbursements_create",
+        "parameters": [
+          {
+            "description": "Client-generated key; always retry with the same key.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisbursementRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Disburse a loan into a deposit account",
+        "tags": [
+          "Loans"
+        ]
+      }
+    },
+    "/api/v1/loans/{account_id}/repayments": {
+      "post": {
+        "operationId": "loans_repayments_create",
+        "parameters": [
+          {
+            "description": "Client-generated key; always retry with the same key.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepaymentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Repay a loan from a deposit account",
+        "tags": [
+          "Loans"
+        ]
+      }
+    },
+    "/api/v1/operations/eod": {
+      "post": {
+        "operationId": "operations_eod_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EodRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Run EoD steps: hold expiry + interest accrual/capitalization (idempotent)",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/api/v1/operations/integrity-runs": {
+      "post": {
+        "operationId": "operations_integrity_runs_create",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Reconstruct balances from postings and verify",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/api/v1/parties": {
+      "get": {
+        "operationId": "parties_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Party"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "List parties",
+        "tags": [
+          "Parties"
+        ]
+      },
+      "post": {
+        "operationId": "parties_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartyWriteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Party"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Create a party",
+        "tags": [
+          "Parties"
+        ]
+      }
+    },
+    "/api/v1/parties/{party_id}": {
+      "get": {
+        "operationId": "parties_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Party"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Get a party",
+        "tags": [
+          "Parties"
+        ]
+      },
+      "patch": {
+        "operationId": "parties_partial_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedPartyPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Party"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Update party attributes",
+        "tags": [
+          "Parties"
+        ]
+      }
+    },
+    "/api/v1/parties/{party_id}/kyc": {
+      "post": {
+        "operationId": "parties_kyc_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KycRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Party"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Record an external KYC outcome",
+        "tags": [
+          "Parties"
+        ]
+      }
+    },
+    "/api/v1/parties/{party_id}/status": {
+      "post": {
+        "operationId": "parties_status_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "party_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartyStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Party"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Change party status",
+        "tags": [
+          "Parties"
+        ]
+      }
+    },
+    "/api/v1/products": {
+      "get": {
+        "operationId": "products_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Product"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "List products",
+        "tags": [
+          "Products"
+        ]
+      },
+      "post": {
+        "operationId": "products_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "CurrentAccount": {
+                  "summary": "Current account",
+                  "value": {
+                    "code": "CURRENT",
+                    "definition": {
+                      "allowed_operations": [
+                        "DEPOSIT",
+                        "WITHDRAWAL",
+                        "TRANSFER_OUT",
+                        "TRANSFER_IN",
+                        "HOLD"
+                      ],
+                      "balance_side": "LIABILITY",
+                      "category": "CURRENT_ACCOUNT",
+                      "currencies": [
+                        "MRU",
+                        "XOF",
+                        "EUR",
+                        "USD"
+                      ],
+                      "fees": [
+                        {
+                          "calculation": {
+                            "amount": {
+                              "EUR": "0.50",
+                              "MRU": "20.00",
+                              "USD": "0.50",
+                              "XOF": "300"
+                            },
+                            "type": "FLAT"
+                          },
+                          "code": "WITHDRAWAL_FEE",
+                          "description": "Cash withdrawal fee + 16% tax.",
+                          "operations": [
+                            "WITHDRAWAL"
+                          ],
+                          "tax_rate": "0.16"
+                        },
+                        {
+                          "calculation": {
+                            "max": {
+                              "EUR": "10.00",
+                              "MRU": "400.00",
+                              "USD": "10.00",
+                              "XOF": "6000"
+                            },
+                            "min": {
+                              "EUR": "0.10",
+                              "MRU": "4.00",
+                              "USD": "0.10",
+                              "XOF": "60"
+                            },
+                            "rate": "0.005",
+                            "type": "PERCENTAGE"
+                          },
+                          "code": "TRANSFER_FEE",
+                          "condition": "channel != 'BRANCH'",
+                          "operations": [
+                            "TRANSFER_OUT"
+                          ],
+                          "tax_rate": "0.16"
+                        }
+                      ],
+                      "gl_mapping": {
+                        "cash": "1010",
+                        "fee_income": "4100",
+                        "principal": "2110",
+                        "tax_payable": "2400"
+                      },
+                      "lifecycle": {
+                        "min_kyc_level": 1,
+                        "min_opening_amount": {
+                          "EUR": "0.00",
+                          "MRU": "0.00",
+                          "USD": "0.00",
+                          "XOF": "0"
+                        }
+                      },
+                      "limits": [
+                        {
+                          "code": "DAILY_OUT",
+                          "max_amount": {
+                            "EUR": "10000.00",
+                            "MRU": "400000.00",
+                            "USD": "10000.00",
+                            "XOF": "6000000"
+                          },
+                          "max_count": 50,
+                          "operations": [
+                            "WITHDRAWAL",
+                            "TRANSFER_OUT"
+                          ],
+                          "window": "DAILY"
+                        }
+                      ],
+                      "overdraft_parameter": "overdraft_limit",
+                      "parameters": {
+                        "overdraft_limit": {
+                          "default": {
+                            "EUR": "0.00",
+                            "MRU": "0.00",
+                            "USD": "0.00",
+                            "XOF": "0"
+                          },
+                          "description": "Authorized overdraft (negative headroom).",
+                          "max": {
+                            "EUR": "5000.00",
+                            "MRU": "200000.00",
+                            "USD": "5000.00",
+                            "XOF": "3000000"
+                          },
+                          "min": {
+                            "EUR": "0.00",
+                            "MRU": "0.00",
+                            "USD": "0.00",
+                            "XOF": "0"
+                          },
+                          "overridable": true,
+                          "type": "money"
+                        }
+                      },
+                      "schema_version": 1
+                    },
+                    "name": "Current account"
+                  }
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Create a product (version 1 as DRAFT)",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/templates": {
+      "get": {
+        "operationId": "products_templates_retrieve",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Seed product templates",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/validate": {
+      "post": {
+        "operationId": "products_validate_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Validate a definition document (no side effects)",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/{product_id}": {
+      "get": {
+        "operationId": "products_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Get a product",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/{product_id}/retire": {
+      "post": {
+        "operationId": "products_retire_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Retire the product (no new accounts)",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/{product_id}/simulate": {
+      "post": {
+        "operationId": "products_simulate_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Simulate fees and rules for an operation (pure; no account needed)",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/{product_id}/versions": {
+      "get": {
+        "operationId": "products_versions_list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Version"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "List versions",
+        "tags": [
+          "Products"
+        ]
+      },
+      "post": {
+        "operationId": "products_versions_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Draft a new version",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/{product_id}/versions/{version}": {
+      "get": {
+        "operationId": "products_versions_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Get a version",
+        "tags": [
+          "Products"
+        ]
+      },
+      "put": {
+        "operationId": "products_versions_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Replace a DRAFT definition",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/{product_id}/versions/{version}/approve": {
+      "post": {
+        "operationId": "products_versions_approve_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Approve & activate (checker \u2260 maker)",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/{product_id}/versions/{version}/reject": {
+      "post": {
+        "operationId": "products_versions_reject_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Reject a pending version (checker)",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/products/{product_id}/versions/{version}/submit": {
+      "post": {
+        "operationId": "products_versions_submit_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Submit a DRAFT for approval (maker)",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/v1/transactions": {
+      "get": {
+        "operationId": "transactions_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "account_id",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionOut"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "List transactions",
+        "tags": [
+          "Transactions"
+        ]
+      }
+    },
+    "/api/v1/transactions/deposits": {
+      "post": {
+        "operationId": "transactions_deposits_create",
+        "parameters": [
+          {
+            "description": "Client-generated key; always retry with the same key.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "Request": {
+                  "value": {
+                    "account_id": "\u2026",
+                    "amount": "1000.00",
+                    "channel": "BRANCH",
+                    "currency": "MRU"
+                  }
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/AccountOpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Cash deposit",
+        "tags": [
+          "Transactions"
+        ]
+      }
+    },
+    "/api/v1/transactions/simulate": {
+      "post": {
+        "operationId": "transactions_simulate_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Dry-run any operation against live state (always rolled back)",
+        "tags": [
+          "Transactions"
+        ]
+      }
+    },
+    "/api/v1/transactions/transfers": {
+      "post": {
+        "operationId": "transactions_transfers_create",
+        "parameters": [
+          {
+            "description": "Client-generated key; always retry with the same key.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "Request": {
+                  "value": {
+                    "amount": "200.00",
+                    "currency": "MRU",
+                    "source_account_id": "\u2026",
+                    "target_account_id": "\u2026"
+                  }
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/TransferRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Internal transfer",
+        "tags": [
+          "Transactions"
+        ]
+      }
+    },
+    "/api/v1/transactions/withdrawals": {
+      "post": {
+        "operationId": "transactions_withdrawals_create",
+        "parameters": [
+          {
+            "description": "Client-generated key; always retry with the same key.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountOpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Cash withdrawal",
+        "tags": [
+          "Transactions"
+        ]
+      }
+    },
+    "/api/v1/transactions/{txn_id}": {
+      "get": {
+        "operationId": "transactions_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "txn_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Get a transaction",
+        "tags": [
+          "Transactions"
+        ]
+      }
+    },
+    "/api/v1/transactions/{txn_id}/reversal": {
+      "post": {
+        "operationId": "transactions_reversal_create",
+        "parameters": [
+          {
+            "description": "Client-generated key; always retry with the same key.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "txn_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReversalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "RFC 9457 problem details (docs/api/error-catalog.md).",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "correlation_id": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "detail",
+                    "retryable",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "Reverse a POSTED transaction (mirror entries, linked)",
+        "tags": [
+          "Transactions"
+        ]
+      }
+    },
+    "/api/v1/transactions/{txn_id}/transitions": {
+      "get": {
+        "operationId": "transactions_transitions_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "txn_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "summary": "State-transition history (append-only)",
+        "tags": [
+          "Transactions"
+        ]
+      }
+    }
+  }
+}

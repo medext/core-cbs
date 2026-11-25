@@ -147,6 +147,11 @@ jobs:
         run: |
           uv run python manage.py migrate --noinput
           uv run python manage.py migrate_tenants
+      - name: Bootstrap seed CoA + product catalog, verify ledger integrity
+        run: |
+          uv run python manage.py bootstrap_tenant
+          uv run python manage.py bootstrap_tenant   # idempotent re-run
+          uv run python manage.py verify_ledger
       - name: Serve and assert health + tenant-scoped route
         run: |
           uv run gunicorn next_core.wsgi:application --bind 127.0.0.1:8010 --daemon

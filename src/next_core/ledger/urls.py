@@ -10,5 +10,4 @@ urlpatterns = [
 
 operations = [
     path("operations/integrity-runs", api.IntegrityRunView.as_view(), name="integrity-runs"),
-    path("operations/eod", api.EodView.as_view(), name="eod"),
 ]

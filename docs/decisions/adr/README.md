@@ -15,3 +15,4 @@ changes of direction are a new, superseding ADR.
 | [0007](0007-transactional-outbox.md) | Transactional outbox + inbox deduplication | Accepted |
 | [0008](0008-external-iam.md) | External IAM (OIDC; Keycloak reference) | Accepted |
 | [0009](0009-worker-framework.md) | Celery (reliability-configured) as worker framework | Accepted |
+| [0010](0010-declarative-product-engine.md) | Declarative product engine + restricted expression language | Proposed |

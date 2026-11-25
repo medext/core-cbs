@@ -7,6 +7,16 @@
 | **Owning phase** | Phase 0 (spec) → Phase 3/5 (implementation must match; same-change rule). |
 | **Related** | [Ledger architecture](ledger-architecture.md) · [Transaction lifecycle](../domain/transaction-lifecycle.md) · [Glossary](../domain/glossary.md) |
 
+## Implementation status (MVP track, 2026-11-25)
+
+All stored fields below exist on `ledger_balance` and are exposed by
+`GET /api/v1/accounts/{id}/balances`. `book_balance`, totals, `held_amount`,
+`overdraft_limit` and `version` are maintained by the posting service. `pending_debit` and
+`pending_credit` exist but are always 0 (no operation reserves without a hold yet).
+`cleared_balance` is returned equal to `book_balance` (same-day value dating). The funds
+check uses `available_balance` exactly as defined below, under row lock, with a database
+trigger backstop. `as_of.business_date` is the UTC calendar date (OD-28).
+
 ## Stored figures (LedgerBalance projection fields)
 
 All amounts are Money (integer minor units + currency, ADR-0004). "Signed per normal side"

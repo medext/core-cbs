@@ -36,3 +36,7 @@ loans = [
     ),
     path("loans/<uuid:account_id>/repayments", api.RepaymentView.as_view(), name="loan-repayments"),
 ]
+
+operations = [
+    path("operations/eod", api.EodView.as_view(), name="eod"),
+]

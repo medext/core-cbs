@@ -1,12 +1,9 @@
 """Ledger read API (no write endpoint exists — balances change only through business
 transactions) + operations endpoints (integrity verification, EoD steps)."""
 
-from datetime import date
-from typing import Any
 from uuid import UUID
 
 from drf_spectacular.utils import extend_schema
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,7 +13,7 @@ from next_core.ledger.application import entry_lines, list_gl_accounts
 from next_core.ledger.integrity import trial_balance, verify_ledger
 from next_core.ledger.models import JournalEntry
 from next_core.platform import clock
-from next_core.platform.api import OBJ, OBJ_LIST, StrictSerializer, actor_from
+from next_core.platform.api import OBJ, OBJ_LIST
 from next_core.platform.errors import NotFoundError
 from next_core.platform.money import Money
 
@@ -147,37 +144,3 @@ class IntegrityRunView(DataPlaneView):
             },
             status=201,
         )
-
-
-class EodSerializer(StrictSerializer):
-    business_date = serializers.DateField(required=False)
-
-
-class EodView(DataPlaneView):
-    method_permissions = {"POST": OPERATIONS_RUN}
-
-    @extend_schema(
-        tags=OPS_TAG,
-        summary="Run EoD steps: hold expiry + interest accrual/capitalization (idempotent)",
-        request=EodSerializer,
-        responses={200: OBJ},
-    )
-    def post(self, request: Request) -> Response:
-        from next_core.transactions.application import expire_holds, run_interest
-
-        ser = EodSerializer(data=request.data or {})
-        ser.is_valid(raise_exception=True)
-        on: date = ser.validated_data.get("business_date") or clock.business_date()
-        actor = actor_from(request)
-        expired = expire_holds(actor)
-        summary = run_interest(on, actor)
-        body: dict[str, Any] = {
-            "business_date": on.isoformat(),
-            "holds_expired": expired,
-            "interest": {
-                "accounts_considered": summary.accounts_considered,
-                "accrued": summary.accrued,
-                "capitalized": summary.capitalized,
-            },
-        }
-        return Response(body)

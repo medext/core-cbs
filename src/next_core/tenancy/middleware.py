@@ -15,6 +15,7 @@ from collections.abc import Callable
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse
 
+from next_core.platform.errors import problem
 from next_core.platform.logging import logger
 from next_core.tenancy.context import TenantContext, tenant_context
 from next_core.tenancy.directory import get_directory
@@ -58,14 +59,13 @@ class TenantContextMiddleware:
             # lifecycle status (existence oracle).
             logger.warning("tenancy.resolution_failed", reason=str(exc))
             return JsonResponse(
-                {
-                    "code": "TENANT_RESOLUTION_FAILED",
-                    "title": "Tenant resolution failed",
-                    "detail": "The request could not be attributed to a valid tenant.",
-                    "correlation_id": getattr(request, "correlation_id", ""),
-                    "retryable": False,
-                },
+                problem(
+                    "TENANT_RESOLUTION_FAILED",
+                    "The request could not be attributed to a valid tenant.",
+                    str(getattr(request, "correlation_id", "")),
+                ),
                 status=400,
+                content_type="application/problem+json",
             )
         with tenant_context(ctx):
             return self.get_response(request)

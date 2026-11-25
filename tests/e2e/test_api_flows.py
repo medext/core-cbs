@@ -65,7 +65,7 @@ def seeded(tenants: dict[str, Tenant]) -> dict[str, Tenant]:
 def _product_id(api: Api, code: str) -> str:
     status, body = api.get("/api/v1/products")
     assert status == 200, body
-    return next(p["id"] for p in body["results"] if p["code"] == code)
+    return str(next(p["id"] for p in body["results"] if p["code"] == code))
 
 
 def _customer(teller: Api, name: str, level: int = 2) -> str:
@@ -88,7 +88,7 @@ def _open(teller: Api, party_id: str, product_id: str, **extra: Any) -> dict[str
         {"party_id": party_id, "product_id": product_id, "currency": "MRU", **extra},
     )
     assert status == 201, acc
-    return acc
+    return dict(acc)
 
 
 def test_full_banking_flow(seeded: dict[str, Tenant], token_factory: TokenFactory) -> None:

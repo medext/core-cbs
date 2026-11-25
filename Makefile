@@ -1,6 +1,6 @@
 # Next Core — canonical developer commands (referenced by CLAUDE.md; do not invent alternatives)
 
-.PHONY: install lint format typecheck test test-unit test-integration check docs run \
+.PHONY: install lint format typecheck test test-unit test-integration check docs run openapi \
         test-db-start test-db-stop clean
 
 UV ?= uv
@@ -38,6 +38,13 @@ check: lint typecheck test docs
 
 docs:
 	$(UV) run mkdocs build --strict
+
+# Regenerate the committed OpenAPI 3.1 contract (contract-tested for drift).
+openapi:
+	DJANGO_SETTINGS_MODULE=next_core.settings.test $(UV) run python -c "import json, django; django.setup(); \
+	from drf_spectacular.generators import SchemaGenerator; \
+	s = SchemaGenerator().get_schema(request=None, public=True); \
+	open('docs/api/openapi.json', 'w').write(json.dumps(s, indent=2, sort_keys=True, default=str) + '\\n')"
 
 run:
 	$(UV) run python manage.py runserver 0.0.0.0:8000
