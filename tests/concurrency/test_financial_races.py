@@ -306,3 +306,27 @@ def test_duplicate_requests_replay_identical_status_and_body(ctx: TenantContext)
     results = run_parallel(ctx, [call] * 6)
     assert len({(r.status, json.dumps(r.body, sort_keys=True)) for r in results}) == 1
     assert book(acc) == 500
+
+
+def test_retryable_errors_are_not_stored_and_same_key_retry_succeeds(ctx: TenantContext) -> None:
+    """Concurrency review N1: a retryable DomainError must not burn the idempotency key."""
+    from next_core.platform.errors import RequestInProgressError
+    from next_core.transactions.models import IdempotencyRecord
+
+    products = f.bootstrap()
+    acc = f.account(products)
+    idem = txns.Idempotency("deposit", "client-r", "retry-key")
+    attempts = {"n": 0}
+
+    def flaky() -> BusinessTransaction:
+        attempts["n"] += 1
+        if attempts["n"] == 1:
+            raise RequestInProgressError("transient")
+        return txns.deposit(acc.id, Money(100, "MRU"), BRANCH, f.TELLER)
+
+    with pytest.raises(RequestInProgressError):
+        txns.execute_idempotent(idem, {"x": 1}, flaky, lambda exc: None)
+    assert not IdempotencyRecord.objects.filter(key="retry-key").exists()
+    assert not BusinessTransaction.objects.filter(state="REJECTED").exists()
+    out = txns.execute_idempotent(idem, {"x": 1}, flaky, lambda exc: None)
+    assert out.status == 201 and not out.replayed and book(acc) == 100

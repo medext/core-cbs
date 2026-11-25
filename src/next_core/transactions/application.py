@@ -322,6 +322,11 @@ def execute_idempotent(
                     status, body, final = 201, to_dict(txn), "COMPLETED"
                     txn_id: uuid.UUID | None = txn.id
                 except DomainError as exc:
+                    if exc.entry.retryable:
+                        # Transient (e.g. REQUEST_IN_PROGRESS): never stored — the outer
+                        # rollback removes the idempotency row so a retry with the same key
+                        # re-executes (concurrency review N1).
+                        raise
                     rejected = on_reject(exc)
                     body = exc.to_problem(_correlation_id())
                     if rejected is not None:
@@ -1058,37 +1063,37 @@ def accrue_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> int:
     principal book balance as of that day (value dates ≤ day); entries carry value_date =
     day; accrual stops the day before maturity. Returns the number of days posted."""
     _check_not_future(on)
-    with transaction.atomic(using=_alias()):
-        snap = accounts.lock_for_operation([account_id])[account_id]
-        account, defn = snap.account, snap.definition
-        if (
-            account.status == "CLOSED"
-            or defn.interest is None
-            or account.interest_balance_id is None
-        ):
-            return 0
-        start = (
-            account.interest_accrued_through + timedelta(days=1)
-            if account.interest_accrued_through
-            else account.opened_on
-        )
-        end = on
-        if account.maturity_date is not None:
-            end = min(end, account.maturity_date - timedelta(days=1))
-        if start > end:
-            return 0
-        if (end - start).days >= MAX_CATCH_UP_DAYS:
-            raise ConflictStateError(
-                f"Accrual is {(end - start).days + 1} days behind; catch up in ≤ "
-                f"{MAX_CATCH_UP_DAYS}-day runs."
+    posted = 0
+    for _ in range(MAX_CATCH_UP_DAYS + 1):
+        # One DB transaction per day (concurrency review N2): shared P&L rows are locked only
+        # for one day's posting; checkpoint + deterministic txn ids make re-runs safe.
+        with transaction.atomic(using=_alias()):
+            snap = accounts.lock_for_operation([account_id])[account_id]
+            account, defn = snap.account, snap.definition
+            if (
+                account.status == "CLOSED"
+                or defn.interest is None
+                or account.interest_balance_id is None
+            ):
+                return posted
+            day = (
+                account.interest_accrued_through + timedelta(days=1)
+                if account.interest_accrued_through
+                else account.opened_on
             )
-        posted = 0
-        day = start
-        while day <= end:
+            end = on
+            if account.maturity_date is not None:
+                end = min(end, account.maturity_date - timedelta(days=1))
+            if day > end:
+                return posted
+            if posted == 0 and (end - day).days >= MAX_CATCH_UP_DAYS:
+                raise ConflictStateError(
+                    f"Accrual is {(end - day).days + 1} days behind; catch up in ≤ "
+                    f"{MAX_CATCH_UP_DAYS}-day runs."
+                )
             posted += int(_accrue_day(snap, day, actor))
-            day += timedelta(days=1)
-        accounts.mark_interest_accrued(account, end)
-        return posted
+            accounts.mark_interest_accrued(account, day)
+    return posted  # pragma: no cover - bounded by the catch-up guard
 
 
 def capitalize_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> bool:
