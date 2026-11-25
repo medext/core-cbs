@@ -83,6 +83,13 @@ ambiguous (business transaction vs. accounting transaction vs. database transact
 | **Fee plan / Limit plan / Interest (rate) plan** | Versioned, effective-dated configuration bundles referenced by product versions. |
 | **Maker-checker** | Control requiring a change (maker) to be approved by a distinct authorized user (checker) before activation. |
 | **Effective dating** | Configurations carry activation dates; behavior is selected by date, never by mutating history. |
+| **Product definition** | The declarative JSON document (schema v1) of a product version: accounting side, GL mapping, parameters, allowed operations, operation rules, fees, limits, interest, credit/overdraft, lifecycle. As built, fee/limit/interest configuration lives inside the definition rather than in separate plans. |
+| **Version status** | DRAFT → PENDING_APPROVAL → ACTIVE → SUPERSEDED / RETIRED, or REJECTED. Only ACTIVE versions accept new accounts; definitions are immutable once submitted. |
+| **Product parameter / override** | A typed, bounded value declared by a product (money, rate, integer, boolean); an *override* is an account-level value for an `overridable` parameter, validated against its bounds at opening. |
+| **Operation rule** | A product guard: a restricted expression that must evaluate true for an operation to proceed (else `PRODUCT_RULE_VIOLATION`). |
+| **Restricted expression** | The bounded, whitelist-interpreted expression language of product definitions (Decimal arithmetic, comparisons, boolean logic, `min`/`max`/`abs`); never executed as code (ADR-0010). |
+| **Credit limit** | For lending (ASSET) products, the maximum outstanding principal a disbursement may reach (fees included). |
+| **Accrued interest balance** | The second ledger balance (purpose `ACCRUED_INTEREST`) of an interest-bearing account, accumulating daily accruals until capitalization into principal. |
 
 ## Platform & tenancy
 
@@ -96,6 +103,8 @@ ambiguous (business transaction vs. accounting transaction vs. database transact
 | **Idempotency key** | Client-supplied unique key scoping one logical financial request per (tenant, operation, client); guarantees at-most-once posting. |
 | **Transactional outbox** | Pattern: events written in the same DB transaction as state, relayed after commit (at-least-once). |
 | **Inbox / deduplication** | Consumer-side pattern discarding already-processed event deliveries. |
+| **Idempotency scope** | The unique tuple (tenant, operation, principal, key) of an idempotency record; the same key under another operation or principal is a different request. |
+| **Writer session flag** | Transaction-local PostgreSQL setting `next_core.ledger_writer` set only by the posting service; database triggers refuse ledger inserts and balance updates without it. |
 | **Correlation ID** | Identifier propagated across a request/job/event chain for tracing and audit. |
 
 ## Identity & access (Phase 2)

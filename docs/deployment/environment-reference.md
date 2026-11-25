@@ -29,6 +29,7 @@
 | `DJANGO_DEBUG` | no | `true` local only | Ignored (forced False) in saas/onprem |
 | `DATABASE_URL` | **yes** | local dev DSN in local/test | **PostgreSQL only** — any other engine refuses to boot (ADR-0003) |
 | `DATABASE_CONN_MAX_AGE` | no | `60` | Seconds |
+| `DATABASE_LOCK_TIMEOUT_MS` | no | `5000` | PostgreSQL `lock_timeout` set on the default and every tenant alias; a lock wait beyond it fails as retryable `503 DEPENDENCY_UNAVAILABLE` |
 | `TEST_DB_PORT` | no | `5433` | test profile & `make test-db-*` only: port of the local test PostgreSQL |
 | `NEXT_CORE_TENANT_RESOLVER` | no | `header` (forced `static` in onprem) | `header` = X-Tenant-ID (dev/test/staging behind trusted gateway); `static` = on-prem single tenant |
 | `NEXT_CORE_TENANT_DIRECTORY` | no | `control` (forced `static` in onprem) | Tenant lookup source: control-plane registry vs. static config |

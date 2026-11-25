@@ -14,9 +14,7 @@ from django.test import Client
 
 from next_core.control_plane.models import Tenant
 from next_core.products.catalog import SAVINGS
-from next_core.products.management.commands.bootstrap_tenant import bootstrap_current_tenant
-from next_core.tenancy.context import tenant_context
-from tests.conftest import TENANT_DBS, TokenFactory, ctx_for
+from tests.conftest import TENANT_DBS, TokenFactory
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db(databases=TENANT_DBS)]
 
@@ -50,16 +48,26 @@ class Api:
             raise AssertionError(f"{path} -> {r.status_code}: {r.content[:300]!r}")
         return r.status_code, json.loads(r.content or b"null")
 
+    def patch(self, path: str, body: dict[str, Any]) -> tuple[int, Any]:
+        r = self.client.patch(
+            path,
+            data=json.dumps(body),
+            content_type="application/json",
+            headers=self._headers(None),
+        )
+        return r.status_code, json.loads(r.content or b"null")
+
+    def put_json(self, path: str, body: dict[str, Any]) -> tuple[int, Any]:
+        r = self.client.put(
+            path,
+            data=json.dumps(body),
+            content_type="application/json",
+            headers=self._headers(None),
+        )
+        return r.status_code, json.loads(r.content or b"null")
+
     def write(self, path: str, body: dict[str, Any] | None = None) -> tuple[int, Any]:
         return self.post(path, body, key=str(uuid.uuid4()))
-
-
-@pytest.fixture()
-def seeded(tenants: dict[str, Tenant]) -> dict[str, Tenant]:
-    for t in tenants.values():
-        with tenant_context(ctx_for(t)):
-            bootstrap_current_tenant()
-    return tenants
 
 
 def _product_id(api: Api, code: str) -> str:

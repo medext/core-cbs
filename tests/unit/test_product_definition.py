@@ -96,3 +96,17 @@ def test_money_basics() -> None:
         Money(1.5, "EUR")  # type: ignore[arg-type]
     with pytest.raises(TypeError):
         Money(True, "EUR")
+
+
+def test_definition_resource_bounds() -> None:
+    big = copy.deepcopy(CURRENT_ACCOUNT)
+    big["fees"] = [copy.deepcopy(CURRENT_ACCOUNT["fees"][0]) for _ in range(51)]
+    with pytest.raises(ValidationFailedError):
+        parse_definition(big)
+    deep: dict[str, Any] = {}
+    node = deep
+    for _ in range(12):
+        node["x"] = {}
+        node = node["x"]
+    with pytest.raises(ValidationFailedError):
+        parse_definition({**CURRENT_ACCOUNT, "lifecycle": deep})

@@ -132,3 +132,42 @@ Mandatory adversarial tests on real PostgreSQL, parallel transactions with barri
 
 Money-conservation postcondition on every test: Σ all balances unchanged except by intended
 entries; reconstruction matches projections.
+
+## As built (MVP track, 2026-11-25)
+
+Implemented in `transactions.application`, `accounts.application`, `limits.application`,
+`ledger.application` and `platform.outbox.service`; reviewed by the
+`postgres-concurrency-reviewer` (APPROVE-WITH-CONDITIONS; fixes below not yet re-verified by
+the reviewer).
+
+- **Idempotency gate**: `execute_idempotent` — `INSERT … ON CONFLICT DO NOTHING RETURNING id`
+  into `idempotency_record` (unique tenant, operation, client, key), then the business work in
+  a savepoint; a business rejection rolls the savepoint back and records a REJECTED
+  transaction + `FAILED_FINAL` record in the same transaction (replayed identically, OD-35).
+  In synchronous mode a concurrent duplicate blocks on the unique index and then reads the
+  committed record, so `PROCESSING` is never observed.
+- **Global lock order**: accounts (`SELECT … FOR UPDATE ORDER BY id`) → hold row → business
+  transaction row → limit counters (created with `INSERT … ON CONFLICT DO NOTHING`, then
+  locked in `(limit_code, window_key)` order) → ledger balances (`ORDER BY id`). Every path
+  that writes a customer balance holds that account's lock first; unlocked balance reads used
+  for rules/credit checks rely on this.
+- **Reversal vs capture**: `reverse()` reads the original's account ids, locks those accounts,
+  then locks the original row and re-reads its accounts; if a concurrent hold capture attached
+  a new account it answers `409 REQUEST_IN_PROGRESS` (retryable) instead of posting to an
+  account whose lock it does not hold, or locking out of order.
+- **Retries**: deadlock (40P01) and serialization (40001) failures re-run the whole
+  idempotent transaction up to 3 attempts with jittered backoff (5–50 ms × attempt).
+  `tests/concurrency/test_financial_races.py::test_deadlock_is_retried_transparently` forces a
+  real PostgreSQL deadlock to exercise this path.
+- **Bounded lock waits**: every connection (default and tenant aliases) sets
+  `lock_timeout` (default 5000 ms, `DATABASE_LOCK_TIMEOUT_MS`). A lock timeout, or a
+  deadlock/serialization failure that escapes the retries, is answered
+  `503 DEPENDENCY_UNAVAILABLE` (retryable).
+- **Hot balances**: not sharded yet — one internal balance row per (GL, currency) for cash,
+  fee income and tax payable serializes every operation of a tenant that touches it, from
+  `ledger.post` until commit. `lock_timeout` bounds the waits; sharding (above) is deferred to
+  Phase 9 benchmarks (OD-39).
+- **Not yet covered by tests**: kill-worker-mid-transaction and ambiguous post-commit network
+  outcome (covered by design: one transaction + idempotent replay), concurrent interest
+  runners, accrual racing a transfer. Sweeps (`expire_holds`, interest runs) have no
+  deadlock retry of their own: a failure aborts the sweep, which is resumable.

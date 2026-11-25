@@ -36,17 +36,17 @@ retry after fixing the cause with a **new** key (OD-35).
 
 | Code | HTTP | Retryable | Trigger |
 |---|---|---|---|
-| `VALIDATION_ERROR` | 400 | No | Malformed/unknown fields, bad amounts (excess precision, ≤ 0), invalid product definition (all field errors in `errors[]`), invalid overrides, illegal argument combinations |
+| `VALIDATION_ERROR` | 400 | No | Malformed/unknown fields, bad amounts (excess precision, ≤ 0), invalid product definition (all field errors in `errors[]`) or one exceeding resource bounds, GL role type mismatch at approval, invalid overrides, illegal argument combinations, EoD/interest for a future business date |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | No | Financial write without an `Idempotency-Key` header |
 | `TENANT_RESOLUTION_FAILED` | 400 | No | Missing/invalid/unknown/inactive tenant; identical `detail` for every cause (anti-enumeration). Example: `{"code": "TENANT_RESOLUTION_FAILED", "title": "Tenant resolution failed", "detail": "The request could not be attributed to a valid tenant.", "correlation_id": "req_…", "retryable": false}` |
 | `AUTHENTICATION_REQUIRED` | 401 | No | Missing, malformed, expired or wrongly-issued token (issuer bound to the resolved tenant); response carries `WWW-Authenticate: Bearer`. Clients refresh the token, then retry |
 | `PERMISSION_DENIED` | 403 | No | The principal's roles lack the endpoint's registered permission |
-| `MAKER_CHECKER_VIOLATION` | 403 | No | The maker (submitter or last editor) of a product version tries to approve or reject it |
-| `RESOURCE_NOT_FOUND` | 404 | No | Unknown id, or a resource of another tenant (existence is masked) |
+| `MAKER_CHECKER_VIOLATION` | 403 | No | The maker (submitter or last editor) of a product version tries to approve or reject it; the initiator of a transaction tries to reverse it (four-eyes rule) |
+| `RESOURCE_NOT_FOUND` | 404 | No | Unknown id, or a resource of another tenant (existence is masked); a journal entry whose `TRANSACTION` source does not exist (DB guard) |
 | `METHOD_NOT_ALLOWED` | 405 | No | HTTP method not supported by the route |
 | `UNSUPPORTED_MEDIA_TYPE` | 415 | No | Body content type other than JSON |
 | `IDEMPOTENCY_CONFLICT` | 409 | No | Same key, same operation and principal, different payload |
-| `REQUEST_IN_PROGRESS` | 409 | Yes | Same key currently executing (reserved for async paths; synchronous writes serialize on the unique index instead) |
+| `REQUEST_IN_PROGRESS` | 409 | Yes | Same key currently executing (async paths; synchronous writes serialize on the unique index instead); a reversal raced with a hold capture that attached a new account to the transaction — retry with the same key |
 | `CONFLICT_STATE` | 409 | No | Illegal lifecycle transition (transaction, hold, account, party, product version), already-reversed entry/transaction, open draft already exists |
 | `DUPLICATE_RESOURCE` | 409 | No | Product code, party external reference or party identifier already used |
 | `INSUFFICIENT_FUNDS` | 422 | No | Available balance check failed under row lock (`balance_id` in body) |
@@ -56,14 +56,14 @@ retry after fixing the cause with a **new** key (OD-35).
 | `AMOUNT_EXCEEDS_OUTSTANDING` | 422 | No | Loan repayment larger than outstanding principal |
 | `CURRENCY_MISMATCH` | 422 | No | Operation currency ≠ account currency; cross-currency transfer (OD-38) |
 | `OPERATION_NOT_ALLOWED` | 422 | No | Operation not in the product's `allowed_operations` |
-| `PRODUCT_RULE_VIOLATION` | 422 | No | Product operation rule false (body has `rule`), first deposit below minimum opening amount, fee formula/condition failure |
+| `PRODUCT_RULE_VIOLATION` | 422 | No | Product operation rule false (body has `rule`), first deposit below minimum opening amount, fee formula/condition or rule that fails to evaluate (overflow, type error). `detail` names only the rule/fee code — expression source and error are server-logged, never echoed |
 | `KYC_LEVEL_INSUFFICIENT` | 422 | No | Party KYC level below the product's `min_kyc_level` at opening |
 | `PARTY_STATE_INVALID` | 422 | No | Account opening for a non-ACTIVE party |
 | `PRODUCT_NOT_ACTIVE` | 422 | No | Opening or simulating on a product without an ACTIVE version |
 | `UNBALANCED_ENTRY` | 422 | No | Internal: a journal entry spec does not balance per currency (domain check before the DB trigger) |
 | `RATE_LIMITED` | 429 | Yes | Reserved (no rate limiting yet); with `Retry-After` |
 | `INTERNAL_ERROR` | 500 | Yes | Unclassified exception; generic detail, type logged without payload |
-| `DEPENDENCY_UNAVAILABLE` | 503 | Yes | Reserved (IAM/queue/db-pool exhaustion) |
+| `DEPENDENCY_UNAVAILABLE` | 503 | Yes | Database contention that escaped the built-in retries: `lock_timeout` exceeded (SQLSTATE 55P03, default 5 s), deadlock (40P01) or serialization failure (40001). Retry with the same `Idempotency-Key` |
 
 Not yet emitted (registered meaning reserved): `TOKEN_EXPIRED` (expired tokens currently map to
 `AUTHENTICATION_REQUIRED`), `PERIOD_CLOSED` (no accounting periods yet — OD-29),

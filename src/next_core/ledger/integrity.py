@@ -6,7 +6,7 @@ projection must not be trusted until investigated.
 
 from typing import Any
 
-from django.db import transaction
+from django.db import connections, transaction
 from django.db.models import Count, Q, Sum
 
 from next_core.ledger.domain import Direction, book_balance
@@ -23,7 +23,19 @@ def _sums(qs: Any) -> Any:
 
 
 def verify_ledger() -> IntegrityRun:
+    """Reads run in ONE REPEATABLE READ, READ ONLY snapshot (no false mismatches from
+    postings committing between queries); the evidence row is written afterwards."""
     ctx = current_tenant()
+    outermost = not connections[ctx.db_alias].in_atomic_block
+    with transaction.atomic(using=ctx.db_alias):
+        if outermost:  # nested callers (tests) already run inside one snapshot-less txn
+            with connections[ctx.db_alias].cursor() as cur:
+                cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+        findings, balances_checked, entries_checked = _collect_findings()
+    return _record(findings, balances_checked, entries_checked)
+
+
+def _collect_findings() -> tuple[list[dict[str, Any]], int, int]:
     findings: list[dict[str, Any]] = []
 
     rebuilt = {
@@ -62,11 +74,18 @@ def verify_ledger() -> IntegrityRun:
         if row["d"] != row["c"]:
             findings.append({"kind": "TRIAL_BALANCE_BROKEN", "currency": row["currency"]})
 
+    return findings, len(balances), JournalEntry.objects.count()
+
+
+def _record(
+    findings: list[dict[str, Any]], balances_checked: int, entries_checked: int
+) -> IntegrityRun:
+    ctx = current_tenant()
     with transaction.atomic(using=ctx.db_alias):
         run = IntegrityRun.objects.create(
             tenant_id=ctx.tenant_id,
-            balances_checked=len(balances),
-            entries_checked=JournalEntry.objects.count(),
+            balances_checked=balances_checked,
+            entries_checked=entries_checked,
             ok=not findings,
             findings=findings[:1000],
         )

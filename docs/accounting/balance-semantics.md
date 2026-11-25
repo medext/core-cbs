@@ -17,6 +17,18 @@ All stored fields below exist on `ledger_balance` and are exposed by
 check uses `available_balance` exactly as defined below, under row lock, with a database
 trigger backstop. `as_of.business_date` is the UTC calendar date (OD-28).
 
+**Interest basis.** Daily accrual uses the principal **book balance as of the accrual day**,
+recomputed from postings whose entry `value_date` ≤ that day
+(`ledger.application.book_balance_as_of`) — a value-dated figure, not the current projection.
+Accrual entries carry `value_date` = the accrual day.
+
+**Reversal exception to the funds floor.** Reversals are posted with `allow_overdraw` by
+policy: reversing e.g. a deposit whose funds were already spent may push the account below
+`available_balance ≥ 0` (or below its overdraft limit). This is a deliberate, documented
+exception to invariant 18 — a correction must always be postable; the resulting negative
+position is visible in `available_balance` and blocks further debits. Reversals require
+`transactions:reverse` and the four-eyes rule (initiator ≠ reverser).
+
 ## Stored figures (LedgerBalance projection fields)
 
 All amounts are Money (integer minor units + currency, ADR-0004). "Signed per normal side"
@@ -80,10 +92,12 @@ the remainder atomically in one transaction.
 ## Invariant checks on figures
 
 - `book_balance ≡ f(ledger_debit_total, ledger_credit_total)` — recomputed by integrity runs.
-- `held_amount ≡ Σ active holds` — cross-checked against hold records.
+- `held_amount ≡ Σ active holds` — cross-checked against hold records by
+  `reconcile_holds()` in the EoD step.
 - Projection ≡ reconstruction from postings (invariant 9/10).
 - `available_balance ≥ 0` for accounts without overdraft — enforced pre-commit under lock;
-  DB backstop constraint per overdraft policy (design detail Phase 3/5).
+  DB backstop: the `ledger_balance_guard` funds-floor trigger (bypassed only by reversals and
+  policy changes via the transaction-local `allow_overdraw` flag — see above).
 
 ## API exposure
 

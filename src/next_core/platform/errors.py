@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any, ClassVar, Final
 
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+from django.db import OperationalError
 from django.http import Http404
 from rest_framework import exceptions as drf_exc
 from rest_framework.response import Response
@@ -257,6 +258,18 @@ def exception_handler(exc: Exception, context: dict[str, Any]) -> Response | Non
             if isinstance(exc, drf_exc.Throttled) and wait:
                 response["Retry-After"] = str(int(wait))
             return response
+
+    if isinstance(exc, OperationalError):
+        sqlstate = getattr(getattr(exc, "__cause__", None), "sqlstate", None)
+        if sqlstate in ("55P03", "40P01", "40001"):  # lock timeout / deadlock / serialization
+            logger.warning("api.db_contention", sqlstate=sqlstate)
+            return problem_response(
+                problem(
+                    "DEPENDENCY_UNAVAILABLE",
+                    "The resource is busy; retry with the same Idempotency-Key.",
+                    correlation_id,
+                )
+            )
 
     # Unclassified: log with type only (no payload/PII), respond generically.
     logger.error("api.unhandled_exception", exc_type=type(exc).__name__, exc_info=exc)

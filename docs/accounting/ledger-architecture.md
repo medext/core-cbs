@@ -146,7 +146,7 @@ service, `integrity.py`, migrations `0001` + `0002_ledger_db_enforcement`).
 
 No foreign key uses `ON DELETE CASCADE`.
 
-### Database triggers (migration `0002_ledger_db_enforcement`)
+### Database triggers (ledger migrations `0002`, `0003`; transactions migration `0004`)
 
 | Trigger | Enforces |
 |---|---|
@@ -156,9 +156,13 @@ No foreign key uses `ON DELETE CASCADE`.
 | `ledger_entry_balanced_posting`, `ledger_entry_balanced_entry` | DEFERRABLE INITIALLY DEFERRED constraint triggers: per entry ≥ 2 postings and Σdebit = Σcredit **per currency** (invariants 1/2). The posting service forces them `IMMEDIATE` at the end of each call (inside its savepoint), then resets to `DEFERRED`, so a defect rolls back that call cleanly |
 | `ledger_balance_guard` | Balance rows: no DELETE; UPDATE requires the writer flag; identity columns (GL, currency, normal side, owner, purpose) immutable; totals monotonic; `version` must increase by exactly 1; **funds floor** — for funds-enforced balances, an update that makes available < 0 *and* lower than before is refused unless the transaction-local `next_core.allow_overdraw = 'on'` (set only for reversals and policy changes) (invariants 8/18) |
 | `ledger_balance_born_empty` | Balances are inserted with all projection fields at 0 |
+| `ledger_posting_currency` (function `ledger_posting_shape`, redefined by `0003_entry_txid_guard`) | Additionally: postings may only be added to an entry **within the DB transaction that created it**. Each entry stores `created_txid bigint DEFAULT txid_current()` (top-level transaction id, identical inside savepoints); an INSERT into an already-committed entry is refused (invariants 5/6) |
+| `ledger_entry_source_exists` (transactions migration `0004_entry_source_exists`) | A journal entry with `source_type = 'TRANSACTION'` must reference an existing `business_transaction` of the same tenant (invariant 15). The coupling lives in the transactions context so the ledger kernel keeps no dependency on it; violation → `RESOURCE_NOT_FOUND` |
 
 This replaces, for the MVP, the DB-role separation of OD-14 (still advisable in production
-as an additional layer: triggers can be disabled by a superuser).
+as an additional layer: triggers can be disabled by a superuser, and **row-level triggers do
+not fire on `TRUNCATE`** — protecting the ledger tables against `TRUNCATE` requires the role
+separation, OD-40).
 
 ### Posting service (`ledger.application.post`)
 
@@ -185,7 +189,10 @@ transaction rows → limit counters → ledger balances.
 
 `reversal_specs(entry_ids)` builds mirror entries (same balances and amounts, flipped
 directions) with `reversal_of` set and purpose `REV:<original seq>`; they are posted with
-`allow_overdraw` (a reversal may take an account negative). The OneToOne column makes a second
+`allow_overdraw` **by policy**: a reversal may push an account below its overdraft floor
+(documented exception to invariant 18 — see balance-semantics). The transactions context adds
+the four-eyes rule (the original's initiator cannot reverse it; also a DB trigger) and refuses
+reversals touching a closed account. The OneToOne column makes a second
 reversal of the same entry impossible at the database level; reversing a reversal is refused.
 
 ### Integrity and reporting
@@ -193,8 +200,16 @@ reversal of the same entry impossible at the database level; reversing a reversa
 - `verify_ledger` (command `manage.py verify_ledger [--tenant]`, API
   `POST /api/v1/operations/integrity-runs`) rebuilds debit/credit totals and book figures from
   postings for every balance, checks every entry is balanced per currency with ≥ 2 postings,
-  and that Σdebits = Σcredits per currency overall; findings are persisted (`IntegrityRun`)
-  and emit `integrity.mismatch`. The command exits non-zero on findings.
+  and that Σdebits = Σcredits per currency overall. When it is the outermost transaction, all
+  reads run in **one `REPEATABLE READ READ ONLY` snapshot** (no false mismatch from postings
+  committing between queries); the findings are then persisted (`IntegrityRun`) in a separate
+  write and emit `integrity.mismatch`. The command exits non-zero on findings.
+- `transactions.application.reconcile_holds()` checks every principal balance's `held_amount`
+  against Σ ACTIVE `Hold` rows (`HELD_AMOUNT_MISMATCH` findings); it runs in the EoD step
+  (`run_eod_steps`, `POST /api/v1/operations/eod`). It lives in the transactions context
+  because holds are owned there.
+- `book_balance_as_of(balance_id, day)` recomputes the book figure from postings whose entry
+  `value_date` ≤ day — the basis of interest accrual.
 - `trial_balance()` (API `GET /api/v1/ledger/trial-balance`) aggregates per GL × currency.
 - `statement(balance_id, after, limit)` returns postings in id order with an exact running book
   balance (opening figure recomputed from all earlier postings).
@@ -202,8 +217,10 @@ reversal of the same entry impossible at the database level; reversing a reversa
 ### Not built yet
 
 Accounting periods and `PERIOD_CLOSED` (OD-29), balance snapshots and hash chaining (OD-15),
-the FX bridge (OD-4/OD-38), hot-balance sharding, DB-role separation (OD-14), value-dated
-`cleared_balance` (equals book in the MVP).
+the FX bridge (OD-4/OD-38), hot-balance sharding (OD-39: one row per GL × currency for cash,
+fee income and tax is a throughput limit; waits are bounded by `lock_timeout`), DB-role
+separation and `TRUNCATE` protection (OD-14/OD-40), value-dated `cleared_balance` (equals book in
+the MVP).
 
 ## What the ledger deliberately does NOT do
 

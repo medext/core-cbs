@@ -60,6 +60,34 @@ flowchart TB
 **Reading the arrows:** solid = allowed dependency direction (caller → callee via application
 services/events). Anything not drawn is forbidden without an ADR.
 
+## As-built dependencies (MVP track, 2026-11-25)
+
+The implementation adds three edges that the charters imply but the Phase 0 map did not draw,
+and the shared `pricing`/`limits` engines read product definitions:
+
+```mermaid
+flowchart LR
+    TRX[transactions] -->|lock accounts, state & product snapshot| ACC[accounts]
+    ACC -->|eligibility: status + KYC level, no PII| PTY[parties]
+    PRD[products] -.->|read-only: GL code exists & type matches at approval| LED[ledger]
+    ACC -->|open balances, set funds policy| LED
+    TRX -->|post entries, holds, reversals| LED
+    TRX --> PRC[pricing] & LIM[limits]
+    PRC -.->|fee rule types| PRD
+    LIM -.->|limit rule types| PRD
+```
+
+The executable allow-list is `ALLOWED` in `tests/contract/test_contracts.py` (OD-25):
+`ledger` → platform, tenancy (+ iam in its API module); `parties` → platform, tenancy, iam;
+`products` → platform, tenancy, iam, audit, ledger (read), pricing; `pricing` → platform,
+products (definition types); `limits` → platform, tenancy, products; `accounts` → platform,
+tenancy, iam, audit, ledger, parties, products, limits; `transactions` → platform, tenancy,
+iam, audit, ledger, accounts, products, pricing, limits; `control_plane` → nothing in the data
+plane; `platform` → tenancy only (tenant context type). Only `ledger` and `transactions`
+reference the posting-service write API (`post`, `PostingRequest`, `reversal_specs`);
+`accounts` creates empty balances and changes their funds policy through dedicated ledger
+services, never value.
+
 ## Golden dependency rules
 
 1. **`ledger` is the kernel and depends on nothing** except `platform` primitives (money,

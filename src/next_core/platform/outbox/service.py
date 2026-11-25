@@ -58,16 +58,27 @@ def log_sink(message: dict[str, Any]) -> None:
 
 
 def relay_batch(sink: Sink = log_sink, batch_size: int = 100) -> int:
-    """Deliver one batch of pending events (at-least-once, FOR UPDATE SKIP LOCKED)."""
+    """Deliver one batch of pending events: at-least-once, ordered per aggregate (a failed
+    event holds back later events of the same aggregate), one relay per tenant."""
     ctx = current_tenant()
     delivered = 0
     with transaction.atomic(using=ctx.db_alias):
+        # One relay per tenant database at a time: per-aggregate order cannot be overtaken
+        # by a concurrent relay (transaction-scoped advisory lock; coordination only).
+        with connections[ctx.db_alias].cursor() as cur:
+            cur.execute("SELECT pg_try_advisory_xact_lock(hashtext('next_core.outbox_relay'))")
+            if not cur.fetchone()[0]:
+                return 0
         batch = list(
-            OutboxEvent.objects.select_for_update(skip_locked=True)
+            OutboxEvent.objects.select_for_update()
             .filter(status=OutboxStatus.PENDING)
             .order_by("seq")[:batch_size]
         )
+        blocked: set[tuple[str, str]] = set()
         for event in batch:
+            aggregate = (event.aggregate_type, event.aggregate_id)
+            if aggregate in blocked:
+                continue  # an earlier event of this aggregate failed: keep per-aggregate order
             event.attempts += 1
             try:
                 sink(envelope(event))
@@ -76,6 +87,7 @@ def relay_batch(sink: Sink = log_sink, batch_size: int = 100) -> int:
                 if event.attempts >= MAX_ATTEMPTS:
                     event.status = OutboxStatus.DEAD
                 event.save(update_fields=["attempts", "last_error", "status"])
+                blocked.add(aggregate)
                 continue
             event.status = OutboxStatus.DISPATCHED
             event.dispatched_at = now()

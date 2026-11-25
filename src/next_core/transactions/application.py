@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import random
+import time
 import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -44,6 +46,7 @@ from next_core.platform.errors import (
     CurrencyMismatchError,
     DomainError,
     IdempotencyConflictError,
+    MakerCheckerViolationError,
     NotFoundError,
     OperationNotAllowedError,
     ProductRuleViolationError,
@@ -69,6 +72,7 @@ from next_core.transactions.models import (
 )
 
 SOURCE_TYPE = "TRANSACTION"
+log = structlog.get_logger("next_core")
 _DEADLOCK_CODES = frozenset({"40P01", "40001"})
 _MAX_ATTEMPTS = 3
 _SYSTEM_NS = uuid.UUID("6f1c6c1e-3c1a-4d43-9a39-6b6f2d9b7a10")
@@ -158,6 +162,7 @@ def _new_txn(
     narrative: str = "",
     channel: str = "API",
     reversal_of: BusinessTransaction | None = None,
+    value_date: date | None = None,
 ) -> BusinessTransaction:
     today = clock.business_date()
     txn = BusinessTransaction(
@@ -173,7 +178,7 @@ def _new_txn(
         narrative=narrative[:200],
         channel=channel[:20],
         business_date=today,
-        value_date=today,
+        value_date=value_date or today,
         reversal_of=reversal_of,
         initiated_by=actor.id,
     )
@@ -340,6 +345,7 @@ def execute_idempotent(
                 structlog.get_logger("next_core").warning(
                     "transactions.retry_after_db_conflict", sqlstate=code, attempt=attempt
                 )
+                time.sleep(random.uniform(0.005, 0.05) * attempt)  # bounded, jittered backoff
                 continue
             raise
     raise AssertionError("unreachable")  # pragma: no cover
@@ -427,8 +433,9 @@ def evaluate(
         try:
             allowed = rule.condition.evaluate_bool(env)
         except ExpressionError as exc:
+            log.warning("product.rule.evaluation_failed", rule=rule.code, error=str(exc))
             raise ProductRuleViolationError(
-                f"Rule {rule.code} could not be evaluated: {exc}"
+                f"Product rule {rule.code} could not be evaluated.", extra={"rule": rule.code}
             ) from exc
         if not allowed:
             raise ProductRuleViolationError(rule.message, extra={"rule": rule.code})
@@ -845,6 +852,32 @@ def expire_holds(actor: Actor, batch: int = 500) -> int:
     return done
 
 
+def reconcile_holds() -> list[dict[str, Any]]:
+    """held_amount projection ≡ Σ ACTIVE holds per balance (ledger review C6)."""
+    from django.db.models import Sum
+
+    active = {
+        row["balance_id"]: row["total"]
+        for row in Hold.objects.filter(status=HoldStatus.ACTIVE)
+        .values("balance_id")
+        .annotate(total=Sum("amount_minor"))
+    }
+    findings: list[dict[str, Any]] = []
+    for account_id, principal_id in accounts.principal_balances():
+        held = ledger.get_balance(principal_id).held_amount
+        expected = active.get(principal_id, 0)
+        if held != expected:
+            findings.append(
+                {
+                    "kind": "HELD_AMOUNT_MISMATCH",
+                    "account_id": str(account_id),
+                    "projection": held,
+                    "active_holds": expected,
+                }
+            )
+    return findings
+
+
 # ------------------------------------------------------------------------- reversal
 
 _REVERSIBLE = frozenset(
@@ -872,11 +905,22 @@ def reverse(original_id: uuid.UUID, reason: str, actor: Actor) -> BusinessTransa
     account_ids = [a for a in (peek["debit_account_id"], peek["credit_account_id"]) if a]
     snaps = accounts.lock_for_operation(account_ids)
     original = BusinessTransaction.objects.select_for_update().get(id=original_id)
+    locked_now = {a for a in (original.debit_account_id, original.credit_account_id) if a}
+    if not locked_now <= set(snaps):
+        # A concurrent capture attached a new account after our first read: we do not hold
+        # its lock (and must not take it out of order). Retryable by the client.
+        raise RequestInProgressError(
+            "The transaction changed concurrently; retry the reversal with the same key."
+        )
     if original.type not in _REVERSIBLE:
         raise ConflictStateError(f"{original.type} transactions are not reversible via the API.")
     if original.state != TxnState.POSTED:
         raise ConflictStateError(
             f"Only POSTED transactions can be reversed (state {original.state})."
+        )
+    if actor.id == original.initiated_by:
+        raise MakerCheckerViolationError(
+            "The initiator of a transaction cannot reverse it (four-eyes rule)."
         )
     for snap in snaps.values():
         if snap.account.status == "CLOSED":
@@ -915,7 +959,7 @@ class InterestRunSummary:
     accounts_considered: int
     accrued: int
     capitalized: int
-    skipped: int
+    skipped: int  # retained for API compatibility; always 0 since day-by-day catch-up
 
 
 def _system_txn_id(account_id: uuid.UUID, on: date, kind: str) -> uuid.UUID:
@@ -933,69 +977,124 @@ def _decrease_line(balance: ledger.BalanceView, amount: Money) -> PostingLine:
     return PostingLine(balance.id, opposite, amount)
 
 
-def accrue_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> bool:
-    """Daily accrual for one account; deterministic txn id ⇒ re-runs are no-ops."""
-    txn_id = _system_txn_id(account_id, on, "ACCRUAL")
+MAX_CATCH_UP_DAYS = 400
+
+
+def _check_not_future(on: date) -> None:
+    if on > clock.business_date():
+        raise ValidationFailedError(
+            "Interest cannot be accrued or capitalized for a future business date."
+        )
+
+
+def _accrue_day(snap: AccountSnapshot, day: date, actor: Actor) -> bool:
+    """One day's accrual on the principal book balance *as of* ``day`` (value-dated)."""
+    defn = snap.definition
+    assert defn.interest is not None and snap.account.interest_balance_id is not None
+    txn_id = _system_txn_id(snap.id, day, "ACCRUAL")
+    if BusinessTransaction.objects.filter(id=txn_id).exists():
+        return False
+    principal_id = snap.principal_balance_id
+    currency = snap.account.currency
+    as_of = ledger.book_balance_as_of(principal_id, day)
+    rate = Decimal(defn.param_value(defn.interest.rate_parameter, snap.overrides))
+    minor = daily_accrual(
+        as_of,
+        rate,
+        defn.interest.day_count,
+        day,
+        defn.interest.rounding,
+        defn.interest.minimum_balance.get(currency, 0),
+    )
+    if minor <= 0:
+        return False
+    amount = Money(minor, currency)
+    accrued_bal = ledger.get_balance(snap.account.interest_balance_id)
+    is_liability = defn.balance_side == BalanceSide.LIABILITY
+    counter_gl = defn.gl_mapping["interest_expense" if is_liability else "interest_income"]
+    counter = ledger.internal_balance(counter_gl, currency)
+    txn = _new_txn(
+        txn_id=txn_id,
+        type=TxnType.INTEREST_ACCRUAL,
+        amount=amount,
+        actor=actor,
+        credit_account_id=snap.id,
+        channel="SYSTEM",
+        narrative=f"Interest accrual {day.isoformat()}",
+        value_date=day,
+    )
+    # Accrued balance grows on its normal side; the P&L counterpart takes the other side.
+    lines = (
+        _increase_line(accrued_bal, amount),
+        PostingLine(counter.id, Direction.DEBIT if is_liability else Direction.CREDIT, amount),
+    )
+    _pin_versions(txn, snap)
+    _transition(txn, TxnState.AUTHORIZED, actor)
+    _post(
+        txn,
+        [
+            EntrySpec(
+                "ACCRUAL",
+                lines,
+                description=f"Interest accrual {day.isoformat()}",
+                value_date=day,
+                metadata={
+                    "rate": str(rate),
+                    "day_count": defn.interest.day_count.value,
+                    "basis_book_balance_minor": as_of,
+                },
+            )
+        ],
+    )
+    _transition(txn, TxnState.POSTED, actor)
+    return True
+
+
+def accrue_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> int:
+    """Accrue day by day, in order, from the account's checkpoint up to ``on`` (inclusive).
+
+    Guarantees (ledger review B1): never for a future date; each day once (per-account
+    ``interest_accrued_through`` checkpoint + deterministic txn id); the basis is the
+    principal book balance as of that day (value dates ≤ day); entries carry value_date =
+    day; accrual stops the day before maturity. Returns the number of days posted."""
+    _check_not_future(on)
     with transaction.atomic(using=_alias()):
         snap = accounts.lock_for_operation([account_id])[account_id]
+        account, defn = snap.account, snap.definition
         if (
-            BusinessTransaction.objects.filter(id=txn_id).exists()
-            or snap.account.status == "CLOSED"
+            account.status == "CLOSED"
+            or defn.interest is None
+            or account.interest_balance_id is None
         ):
-            return False
-        defn = snap.definition
-        if defn.interest is None or snap.account.interest_balance_id is None:
-            return False
-        principal = ledger.get_balance(snap.principal_balance_id)
-        accrued_bal = ledger.get_balance(snap.account.interest_balance_id)
-        rate = Decimal(defn.param_value(defn.interest.rate_parameter, snap.overrides))
-        minor = daily_accrual(
-            principal.book_balance,
-            rate,
-            defn.interest.day_count,
-            on,
-            defn.interest.rounding,
-            defn.interest.minimum_balance.get(principal.currency, 0),
+            return 0
+        start = (
+            account.interest_accrued_through + timedelta(days=1)
+            if account.interest_accrued_through
+            else account.opened_on
         )
-        if minor <= 0:
-            return False
-        amount = Money(minor, principal.currency)
-        is_liability = defn.balance_side == BalanceSide.LIABILITY
-        counter_gl = defn.gl_mapping["interest_expense" if is_liability else "interest_income"]
-        counter = ledger.internal_balance(counter_gl, amount.currency)
-        txn = _new_txn(
-            txn_id=txn_id,
-            type=TxnType.INTEREST_ACCRUAL,
-            amount=amount,
-            actor=actor,
-            credit_account_id=account_id,
-            channel="SYSTEM",
-            narrative=f"Interest accrual {on.isoformat()}",
-        )
-        # Accrued balance grows on its normal side; the P&L counterpart takes the other side.
-        lines = (
-            _increase_line(accrued_bal, amount),
-            PostingLine(counter.id, Direction.DEBIT if is_liability else Direction.CREDIT, amount),
-        )
-        _pin_versions(txn, snap)
-        _transition(txn, TxnState.AUTHORIZED, actor)
-        _post(
-            txn,
-            [
-                EntrySpec(
-                    "ACCRUAL",
-                    lines,
-                    description=f"Interest accrual {on.isoformat()}",
-                    metadata={"rate": str(rate), "day_count": defn.interest.day_count.value},
-                )
-            ],
-        )
-        _transition(txn, TxnState.POSTED, actor)
-        return True
+        end = on
+        if account.maturity_date is not None:
+            end = min(end, account.maturity_date - timedelta(days=1))
+        if start > end:
+            return 0
+        if (end - start).days >= MAX_CATCH_UP_DAYS:
+            raise ConflictStateError(
+                f"Accrual is {(end - start).days + 1} days behind; catch up in ≤ "
+                f"{MAX_CATCH_UP_DAYS}-day runs."
+            )
+        posted = 0
+        day = start
+        while day <= end:
+            posted += int(_accrue_day(snap, day, actor))
+            day += timedelta(days=1)
+        accounts.mark_interest_accrued(account, end)
+        return posted
 
 
 def capitalize_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> bool:
-    """Move the accrued figure into principal per the product's capitalization policy."""
+    """Move the accrued figure into principal per the product's capitalization policy
+    (MONTHLY: on the 1st; AT_MATURITY: on/after maturity). Never for a future date."""
+    _check_not_future(on)
     txn_id = _system_txn_id(account_id, on, "CAPITALIZATION")
     with transaction.atomic(using=_alias()):
         snap = accounts.lock_for_operation([account_id])[account_id]
@@ -1027,25 +1126,34 @@ def capitalize_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> bo
             credit_account_id=account_id,
             channel="SYSTEM",
             narrative=f"Interest capitalization {on.isoformat()}",
+            value_date=on,
         )
         lines = (_decrease_line(accrued_bal, amount), _increase_line(principal, amount))
         _pin_versions(txn, snap)
         _transition(txn, TxnState.AUTHORIZED, actor)
-        _post(txn, [EntrySpec("CAPITALIZATION", lines, description="Interest capitalization")])
+        _post(
+            txn,
+            [
+                EntrySpec(
+                    "CAPITALIZATION", lines, description="Interest capitalization", value_date=on
+                )
+            ],
+        )
         _transition(txn, TxnState.POSTED, actor)
         return True
 
 
 def run_interest(on: date, actor: Actor) -> InterestRunSummary:
-    """EoD-style step: accrue then capitalize for every interest-bearing account.
-    Idempotent and resumable: each account is its own DB transaction with a deterministic
-    business-transaction id."""
+    """EoD step: accrue (catching up day by day) then capitalize, per interest-bearing
+    account. Idempotent and resumable: per-account DB transactions, checkpoints and
+    deterministic business-transaction ids."""
+    _check_not_future(on)
     ids = accounts.interest_bearing_accounts()
     accrued = capitalized = 0
     for account_id in ids:
-        accrued += int(accrue_interest_for(account_id, on, actor))
+        accrued += accrue_interest_for(account_id, on, actor)
         capitalized += int(capitalize_interest_for(account_id, on, actor))
-    return InterestRunSummary(on, len(ids), accrued, capitalized, len(ids) - accrued)
+    return InterestRunSummary(on, len(ids), accrued, capitalized, 0)
 
 
 # ------------------------------------------------------------------------- simulation

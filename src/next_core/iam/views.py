@@ -20,7 +20,10 @@ class DataPlaneView(APIView):
     method_permissions: ClassVar[dict[str, str]] = {}
 
     def get_permissions(self) -> list[BasePermission]:
-        code = self.method_permissions.get(self.request.method or "")
+        method = self.request.method or ""
+        code = self.method_permissions.get(method)
         if code is None:
-            return [_DenyAll()]
+            # Unsupported method → let DRF answer 405; a handler without a mapped
+            # permission is denied (never "authenticated is enough").
+            return [] if not hasattr(self, method.lower()) else [_DenyAll()]
         return [require_permission(code)()]

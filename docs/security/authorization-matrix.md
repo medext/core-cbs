@@ -32,12 +32,13 @@ Rules:
 | Role | Permissions |
 |---|---|
 | `teller` | `parties:read/write`, `products:read`, `accounts:read`, `accounts:open`, `transactions:read`, `transactions:post`, `holds:manage` |
-| `supervisor` | teller + `accounts:control`, `transactions:reverse` |
+| `supervisor` | teller + `accounts:control`, `transactions:reverse`, `loans:disburse` |
+| `loan_officer` | `parties:read`, `products:read`, `accounts:read`, `accounts:open`, `transactions:read`, `loans:disburse` |
 | `product_manager` (maker) | `products:read`, `products:write`, `ledger:read` |
 | `product_approver` (checker) | `products:read`, `products:approve`, `ledger:read` |
 | `operations` | `operations:run`, `ledger:read`, `accounts:read`, `transactions:read`, `products:read` |
 | `auditor` | `audit:read`, `parties:read`, `products:read`, `accounts:read`, `transactions:read`, `ledger:read` |
-| `api_client` | `parties:read`, `products:read`, `accounts:read`, `transactions:read`, `transactions:post`, `holds:manage` |
+| `api_client` | `parties:read`, `products:read`, `accounts:read`, `transactions:read`, `transactions:post`, `holds:manage` — **not** `loans:disburse`. Residual (security review H2, OD-42): within its tenant an `api_client` can still transfer from any account and capture a hold to any target; channel/account scoping is required before onboarding production channels. |
 | `platform_ops` | `audit:read` |
 
 **Object-level condition (all data-plane rows below):** the resource must belong to the
@@ -60,7 +61,7 @@ finer ownership model (branch/portfolio/customer self-service) in the MVP (OD-36
 | List/get products & versions, templates, validate, simulate | bearer | `products:read` | all bundles except platform_ops | Tenant scope | none | — |
 | Create product, draft version, edit draft, submit | bearer | `products:write` | product_manager | Tenant scope; edit only DRAFT | **maker** | audit `product.version.drafted/edited/submitted` |
 | Approve, reject | bearer | `products:approve` | product_approver | Tenant scope; PENDING_APPROVAL only | **required**: approver ≠ submitter and ≠ last editor (app check + DB CHECK `pv_maker_checker`) | audit `product.version.approved/rejected`; outbox `product.version.activated` |
-| Retire | bearer | `products:approve` | product_approver | Tenant scope; ACTIVE only | none (single privileged step) | audit `product.retired` |
+| Retire | bearer | `products:approve` | product_approver | Tenant scope (unknown/foreign product → 404); ACTIVE only | none — **documented exception**: single privileged step (OD-43) | audit `product.retired` |
 
 ## Accounts (MVP track)
 
@@ -74,9 +75,10 @@ finer ownership model (branch/portfolio/customer self-service) in the MVP (OD-36
 
 | Operation | API scope | Permission | Roles (default bundles) | Object-level condition | Maker-checker | Audit evidence |
 |---|---|---|---|---|---|---|
-| Deposit, withdrawal, transfer, loan disbursement/repayment | bearer + `Idempotency-Key` | `transactions:post` | teller, supervisor, api_client | Tenant scope; account state & product rules | none | transitions history; outbox `transaction.state.changed`, `journal_entry.posted`; idempotency record |
+| Deposit, withdrawal, transfer, loan repayment | bearer + `Idempotency-Key` | `transactions:post` | teller, supervisor, api_client | Tenant scope; account state & product rules | none | transitions history; outbox `transaction.state.changed`, `journal_entry.posted`; idempotency record |
+| Loan disbursement — `POST /loans/{id}/disbursements` | bearer + `Idempotency-Key` | `loans:disburse` | supervisor, loan_officer | Tenant scope; product credit limit | none (credit decision kept off channel clients) | transitions history; outbox `transaction.state.changed`, `journal_entry.posted`; idempotency record |
 | Place / capture / release hold | bearer + `Idempotency-Key` | `holds:manage` | teller, supervisor, api_client | Tenant scope | none | same |
-| Reverse a POSTED transaction | bearer + `Idempotency-Key` | `transactions:reverse` | supervisor | Tenant scope; no closed account | none (operator-initiated maker-checker is a registered follow-up) | audit `transaction.reversed`; outbox `journal_entry.reversed` |
+| Reverse a POSTED transaction | bearer + `Idempotency-Key` | `transactions:reverse` | supervisor | Tenant scope; no closed account | **four-eyes rule**: the original's initiator cannot reverse it (`403 MAKER_CHECKER_VIOLATION`; DB trigger `business_transaction_reversal_four_eyes`). Full request→approve workflow deferred (OD-41) | audit `transaction.reversed`; outbox `journal_entry.reversed` |
 | List/get transactions, transitions, holds; simulate | bearer | `transactions:read` | teller, supervisor, operations, auditor, api_client | Tenant scope | none | — |
 
 ## Ledger & operations (MVP track)
@@ -90,7 +92,8 @@ No endpoint mutates a ledger balance directly (invariant 8).
 
 Cross-cutting conditions enforced on every authenticated route: resolved tenant context
 (hard 400 otherwise) + token issuer bound to the resolved tenant's realm (401 on mismatch) +
-registered permission (403 otherwise). Registry source of truth:
+registered permission (403 otherwise). A method a view does not implement answers `405
+METHOD_NOT_ALLOWED`; a handler without a mapped permission is denied. Registry source of truth:
 `src/next_core/iam/permissions.py`.
 
 Each subsequent phase appends its rows in the same change as its endpoints

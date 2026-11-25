@@ -44,6 +44,7 @@ class Account(models.Model):
     maturity_date = models.DateField(null=True, blank=True)
     closed_on = models.DateField(null=True, blank=True)
     last_activity_on = models.DateField(null=True, blank=True)
+    interest_accrued_through = models.DateField(null=True, blank=True)
     version = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

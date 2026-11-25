@@ -59,7 +59,10 @@ exists; "Partial" names the missing layer. Test files: `IT-L` =
 `E2E` = `tests/e2e/test_api_flows.py`, `CT` = `tests/concurrency/test_financial_races.py`,
 `PT-L` = `tests/property/test_ledger_properties.py`, `PT-M` =
 `tests/property/test_money_and_fees.py`, `UT-X` = `tests/unit/test_expressions.py`, `CON` =
-`tests/contract/test_contracts.py`. Reviewer verdicts and human gate approval are pending.
+`tests/contract/test_contracts.py`, `XT` = `tests/e2e/test_cross_tenant_all_routes.py`. The
+three reviewers returned verdicts (ledger: BLOCK on future-dated interest; concurrency and
+security: approve-with-conditions); the findings were fixed in code with regression tests, but
+the reviewers have **not yet re-verified** the fixes. Human gate approval is pending.
 
 | # | Enforcing code | Tests | Status |
 |---|---|---|---|
@@ -67,26 +70,26 @@ exists; "Partial" names the missing layer. Test files: `IT-L` =
 | 2 | Per-currency check in domain and trigger; cross-currency refused (`CURRENCY_MISMATCH`) | IT-L, IT-F | Enforced (FX bridge not built — OD-38) |
 | 3 | `platform.money.Money` rejects non-int; Decimal-only rates; expressions build Decimals from source text | PT-M, UT-X, CON (no `float(`/`FloatField` in financial modules) | Enforced |
 | 4 | ADR-0004; BIGINT minor units everywhere | schema review | Enforced |
-| 5 | Model-level append-only guards; triggers `*_append_only`, writer flag | IT-L | Enforced (grant-level revocation OD-14 not done) |
-| 6 | Same as 5; corrections only via reversal API | IT-L | Enforced (privileged DML monitoring: Phase 9) |
+| 5 | Model-level append-only guards; triggers `*_append_only`, writer flag; `created_txid` guard: postings can only be added to an entry inside the DB transaction that created it (ledger migration 0003) | IT-L (incl. append-to-committed-entry refused) | Enforced at row level — **TRUNCATE is not blocked** by row triggers; requires DB-role separation (OD-14/OD-40) |
+| 6 | Same as 5; corrections only via reversal API | IT-L | Enforced (same TRUNCATE caveat; privileged DML monitoring: Phase 9) |
 | 7 | `reversal_specs` mirror entries; `POST /transactions/{id}/reversal` | IT-L, IT-F, E2E, PT-L | Enforced |
 | 8 | Writer-flag + `ledger_balance_guard` trigger; no balance-write endpoint | IT-L, E2E, CON | Enforced |
-| 9 | `verify_ledger` reconstruction | IT-L, PT-L, E2E | Enforced |
-| 10 | `verify_ledger` findings persisted + `integrity.mismatch` event | IT-L | Partial — command/API only; no scheduled monitor/alert (MON, Phase 9) |
-| 11 | Idempotency record inserted in the posting transaction (`INSERT … ON CONFLICT`); unique (source, purpose) on entries | E2E, CT | Enforced |
+| 9 | `verify_ledger` reconstruction inside one REPEATABLE READ READ ONLY snapshot (when outermost); `reconcile_holds()` checks `held_amount` ≡ Σ ACTIVE holds | IT-L, PT-L, E2E, IT-F (holds reconcile), CT (holds reconcile after races) | Enforced |
+| 10 | `verify_ledger` findings persisted + `integrity.mismatch` event; hold-reconciliation findings returned by EoD | IT-L, IT-F | Partial — command/API/EoD only; no scheduled monitor/alert (MON, Phase 9); hold findings not persisted |
+| 11 | Idempotency record inserted in the posting transaction (`INSERT … ON CONFLICT`); unique (source, purpose) on entries; deadlock/serialization retries (≤ 3, jittered) re-run the whole transaction | E2E, CT (concurrent duplicates with identical replayed status+body; forced deadlock retried transparently) | Enforced |
 | 12 | Request-hash compare → `409 IDEMPOTENCY_CONFLICT` | E2E, CT | Enforced |
 | 13 | One DB transaction per operation; savepoint rollback on rejection | IT-L, IT-F | Enforced (explicit fault-injection test: follow-up) |
-| 14 | Tenant routing + scoped managers (Phase 2) on all new models | E2E (cross-tenant), Phase 2 suites | Enforced |
-| 15 | `source_type`/`source_id` NOT NULL on entries; every entry from a business transaction | IT-L | Enforced (no FK to the transactions table — cross-context id reference by design) |
+| 14 | Tenant routing + scoped managers (Phase 2) on all new models | E2E (cross-tenant), XT (every object route → 404, no identifier leak), Phase 2 suites | Enforced |
+| 15 | `source_type`/`source_id` NOT NULL on entries; trigger `ledger_entry_source_exists` (transactions migration 0004): a `TRANSACTION`-sourced entry must reference an existing business transaction of the same tenant | IT-L (unknown TRANSACTION source refused) | Enforced at DB for `TRANSACTION` sources (the only source type used by application code); other source types appear only in ledger-kernel tests and are not DB-checked |
 | 16 | Posting CHECKs + `ledger_posting_currency` trigger | IT-L | Enforced |
 | 17 | `normal_side` NOT NULL + CHECK by GL type; copied to balances | IT-L | Enforced |
-| 18 | Funds check under row lock + `ledger_balance_guard` floor | IT-L, IT-F, CT | Enforced |
-| 19 | OneToOne `reversal_of` (entry and business transaction); `reversed_by` exposed | IT-L, E2E | Enforced |
+| 18 | Funds check under row lock + `ledger_balance_guard` floor | IT-L, IT-F, CT (incl. simultaneous holds) | Enforced — **documented exception**: reversals post with `allow_overdraw` (a reversal may push an account below its overdraft floor; see balance-semantics) |
+| 19 | OneToOne `reversal_of` (entry and business transaction); `reversed_by` exposed; four-eyes trigger `business_transaction_reversal_four_eyes` (initiator cannot reverse) | IT-L, E2E, IT-F (initiator cannot reverse), CT | Enforced |
 | 20 | Closure state machine; `account_guard` trigger (no delete, no reopen); history append-only | IT-F, E2E | Enforced |
 | 21 | Accounts pinned to `product_version_id` (immutable by trigger); `product_version_guard` | E2E | Enforced |
-| 22 | EoD steps (hold expiry, interest) idempotent via deterministic ids, one transaction per account | IT-F, E2E | **Partial** — no persisted step framework / kill-and-resume test (Phase 7) |
+| 22 | EoD steps (hold expiry, interest) idempotent via deterministic ids + per-account `interest_accrued_through` checkpoint, one transaction per account; never for a future business date | IT-F (incl. value-dated backdated accrual), E2E, CT (expiry vs capture) | **Partial** — no persisted step framework / kill-and-resume test (Phase 7) |
 | 23 | Every domain check above has a DB backstop where expressible | review | Enforced for ledger, products, accounts; limits rely on row locks + CHECK ≥ 0 |
-| 24 | Triggers + integrity runs | IT-L | Enforced (grant separation OD-14 pending) |
+| 24 | Triggers + integrity runs | IT-L | Enforced at row level (grant separation and TRUNCATE protection — OD-14/OD-40 — pending) |
 | 25 | `outbox.emit` refuses outside a transaction; rows commit with the state change | IT-L, E2E | Enforced (HTTP delivery deferred — OD-30) |
 
 Period-related enforcement (posting only into OPEN periods, `PERIOD_CLOSED`) is **deferred**

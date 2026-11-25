@@ -46,6 +46,8 @@ def register_tenant_alias(alias: str, dsn: str) -> None:
     config.setdefault("CONN_MAX_AGE", 60)
     config.setdefault("CONN_HEALTH_CHECKS", True)
     config.setdefault("OPTIONS", {})
+    timeout = int(getattr(settings, "DB_LOCK_TIMEOUT_MS", 5000))
+    config["OPTIONS"].setdefault("options", f"-c lock_timeout={timeout}")
     config.setdefault("TIME_ZONE", None)
     connections.databases[alias] = config
 

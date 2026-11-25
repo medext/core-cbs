@@ -12,7 +12,7 @@ from next_core.platform import clock
 from next_core.platform.actor import Actor
 from next_core.tenancy.context import tenant_context
 from next_core.tenancy.directory import get_directory
-from next_core.transactions.application import expire_holds, run_interest
+from next_core.transactions.application import expire_holds, reconcile_holds, run_interest
 
 EOD = Actor("system:eod", "SYSTEM")
 
@@ -34,8 +34,9 @@ class Command(BaseCommand):
             with tenant_context(ctx):
                 expired = expire_holds(EOD)
                 summary = run_interest(on, EOD)
+                hold_findings = reconcile_holds()
             self.stdout.write(
                 f"[{ctx.slug}] {on}: holds expired={expired}; interest accounts="
                 f"{summary.accounts_considered} accrued={summary.accrued} "
-                f"capitalized={summary.capitalized}"
+                f"capitalized={summary.capitalized}; hold findings={len(hold_findings)}"
             )

@@ -87,7 +87,29 @@ data-plane contexts; `platform` imports nothing of next_core.
 | `.github/workflows/` added | CI is part of the engineering foundation (Phase 1 gate). |
 | Repo root name `core-cbs` (not `next-core`) | GitHub repository already named `medext/core-cbs`; product name remains Next Core. |
 
-## Current state (Phase 2)
+## Current state (MVP track, 2026-11-25)
+
+Materialized under `src/next_core/` in addition to the Phase 2 packages: `platform/`
+(`money.py`, `errors.py`, `clock.py`, `actor.py`, `persistence.py`, `api.py`, and the
+`outbox/` data-plane app), `ledger/`, `parties/`, `products/` (incl. `expressions.py`,
+`definition.py`, `catalog.py`, `bootstrap_tenant` command), `accounts/`, `transactions/`
+(incl. `run_eod_steps` command), `pricing/` (pure, no models), `limits/`, `iam/views.py` and
+`iam/schema.py`; tests in `tests/{unit,property,integration,contract,concurrency,e2e}/` plus
+`tests/factories.py`.
+
+**Deviation — module form instead of packages.** Contexts use modules `domain.py` (pure
+rules, where needed), `application.py` (use cases and the ports other contexts call),
+`models.py`, `api.py`, `urls.py`, rather than `domain/` and `application/` packages and a
+separate `ports.py`: at MVP size a package per layer is empty ceremony. A context switches to
+packages when a module outgrows ~800 lines. `admin.py` is not shipped (no back-office yet —
+OD-17). Not created yet (no owning work): `interest/` (interest computation lives in
+`pricing/interest.py`, orchestration in `transactions`), `reconciliation/`, `business_day/`,
+`statements/` (statement read model is in `ledger.application.statement`), `notifications/`
+(outbox lives in `platform/outbox`), `integrations/`, `reporting/` (trial balance in
+`ledger.integrity`). Boundary enforcement: OD-25 resolved (AST contract test).
+
+## Previous state (Phase 2)
+
 
 Materialized: `CLAUDE.md`, `README.md`, `STATUS.md`, `.claude/`, `docs/` + `mkdocs.yml`,
 `pyproject.toml`/`uv.lock`, `Makefile`, `compose.yaml`, `.github/workflows/ci.yml` (6 jobs

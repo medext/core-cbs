@@ -27,6 +27,7 @@ ACCOUNTS_CONTROL = "accounts:control"  # status, blocks, closure
 TRANSACTIONS_READ = "transactions:read"
 TRANSACTIONS_POST = "transactions:post"  # deposits, withdrawals, transfers, loans
 HOLDS_MANAGE = "holds:manage"
+LOANS_DISBURSE = "loans:disburse"  # credit decision: never granted to channel clients
 TRANSACTIONS_REVERSE = "transactions:reverse"
 LEDGER_READ = "ledger:read"
 OPERATIONS_RUN = "operations:run"  # EoD steps, integrity runs
@@ -45,6 +46,7 @@ PERMISSIONS: frozenset[str] = frozenset(
         TRANSACTIONS_READ,
         TRANSACTIONS_POST,
         HOLDS_MANAGE,
+        LOANS_DISBURSE,
         TRANSACTIONS_REVERSE,
         LEDGER_READ,
         OPERATIONS_RUN,
@@ -71,7 +73,17 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
     "auditor": _READS,
     "platform_ops": frozenset({AUDIT_READ}),
     "teller": _TELLER,
-    "supervisor": _TELLER | {ACCOUNTS_CONTROL, TRANSACTIONS_REVERSE},
+    "supervisor": _TELLER | {ACCOUNTS_CONTROL, TRANSACTIONS_REVERSE, LOANS_DISBURSE},
+    "loan_officer": frozenset(
+        {
+            PARTIES_READ,
+            PRODUCTS_READ,
+            ACCOUNTS_READ,
+            ACCOUNTS_OPEN,
+            TRANSACTIONS_READ,
+            LOANS_DISBURSE,
+        }
+    ),
     "product_manager": frozenset({PRODUCTS_READ, PRODUCTS_WRITE, LEDGER_READ}),
     "product_approver": frozenset({PRODUCTS_READ, PRODUCTS_APPROVE, LEDGER_READ}),
     "operations": frozenset(

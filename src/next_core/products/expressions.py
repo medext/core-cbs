@@ -21,7 +21,7 @@ from __future__ import annotations
 import ast
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from decimal import Decimal, DivisionByZero, InvalidOperation, localcontext
+from decimal import Decimal, DecimalException, localcontext
 from typing import Any, Final
 
 MAX_LENGTH: Final = 500
@@ -86,12 +86,11 @@ class Expression:
             raise ExpressionError(f"Unbound variable(s): {', '.join(sorted(missing))}.")
         with localcontext() as ctx:
             ctx.prec = 34
-            ctx.traps[DivisionByZero] = True
-            ctx.traps[InvalidOperation] = True
+            ctx.Emax, ctx.Emin = 30, -30  # bounded magnitude: overflow is an error, not a hang
             try:
                 result: Value = _Evaluator(self.source, env).visit(self.tree.body)
                 return result
-            except (DivisionByZero, InvalidOperation) as exc:
+            except DecimalException as exc:
                 raise ExpressionError(f"Arithmetic error in '{self.source}'.") from exc
 
     def evaluate_bool(self, env: Mapping[str, Value]) -> bool:
@@ -132,9 +131,30 @@ def compile_expression(source: str, allowed_names: frozenset[str]) -> Expression
             if node.id not in allowed_names:
                 raise ExpressionError(f"Unknown variable '{node.id}'.")
             names.add(node.id)
-        elif isinstance(node, ast.Constant) and not isinstance(node.value, int | float | str):
-            raise ExpressionError("Only number, string and boolean literals are allowed.")
+        elif isinstance(node, ast.Constant):
+            if not isinstance(node.value, int | float | str):
+                raise ExpressionError("Only number, string and boolean literals are allowed.")
+            if isinstance(node.value, int | float) and not isinstance(node.value, bool):
+                _check_literal(ast.get_source_segment(source.strip(), node) or "")
     return Expression(source.strip(), tree, frozenset(names))
+
+
+MAX_LITERAL_DIGITS: Final = 24
+MAX_LITERAL_EXPONENT: Final = 18
+
+
+def _check_literal(text: str) -> None:
+    try:
+        value = Decimal(text.replace("_", ""))
+    except DecimalException as exc:
+        raise ExpressionError(f"Invalid numeric literal '{text[:20]}'.") from exc
+    digits = value.as_tuple().digits
+    if (
+        not value.is_finite()
+        or len(digits) > MAX_LITERAL_DIGITS
+        or abs(value.adjusted()) > MAX_LITERAL_EXPONENT
+    ):
+        raise ExpressionError("Numeric literal out of bounds (|exponent| <= 18, <= 24 digits).")
 
 
 def _is_call_target(name: ast.Name, nodes: list[ast.AST]) -> bool:

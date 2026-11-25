@@ -12,6 +12,7 @@ Full reference with examples: docs/products/product-engine.md.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
@@ -465,8 +466,51 @@ def check_bounds(param: Parameter, value: Any) -> list[str]:
     return problems
 
 
+MAX_DEFINITION_BYTES: Final = 65_536
+MAX_SECTION_ITEMS: Final = 50
+MAX_TIERS: Final = 20
+MAX_DEPTH: Final = 8
+
+
+def _depth(node: Any, level: int = 0) -> int:
+    if level > MAX_DEPTH:
+        return level
+    if isinstance(node, dict):
+        return max((_depth(v, level + 1) for v in node.values()), default=level)
+    if isinstance(node, list):
+        return max((_depth(v, level + 1) for v in node), default=level)
+    return level
+
+
+def _check_size(raw: Any) -> None:
+    """Resource bounds (security review M2): size, nesting, items per section."""
+    try:
+        size = len(json.dumps(raw, separators=(",", ":")))
+    except (TypeError, ValueError, RecursionError) as exc:
+        raise ValidationFailedError("The product definition is not valid JSON.") from exc
+    if size > MAX_DEFINITION_BYTES:
+        raise ValidationFailedError(f"The product definition exceeds {MAX_DEFINITION_BYTES} bytes.")
+    if _depth(raw) > MAX_DEPTH:
+        raise ValidationFailedError(f"The product definition nests deeper than {MAX_DEPTH} levels.")
+    if isinstance(raw, dict):
+        for section in ("fees", "limits", "operation_rules"):
+            items = raw.get(section)
+            if isinstance(items, list) and len(items) > MAX_SECTION_ITEMS:
+                raise ValidationFailedError(
+                    f"'{section}' allows at most {MAX_SECTION_ITEMS} items."
+                )
+        for fee in raw.get("fees") or []:
+            tiers = fee.get("calculation", {}).get("tiers") if isinstance(fee, dict) else None
+            if isinstance(tiers, list) and len(tiers) > MAX_TIERS:
+                raise ValidationFailedError(f"A tiered fee allows at most {MAX_TIERS} tiers.")
+        params = raw.get("parameters")
+        if isinstance(params, dict) and len(params) > MAX_SECTION_ITEMS:
+            raise ValidationFailedError(f"At most {MAX_SECTION_ITEMS} parameters are allowed.")
+
+
 def parse_definition(raw: Any) -> ProductDefinition:
     """Validate a raw definition document; raise ValidationFailedError with all field errors."""
+    _check_size(raw)
     p = _Parser()
     doc = p.obj(raw, "definition")
     if doc.get("schema_version", SCHEMA_VERSION) != SCHEMA_VERSION:

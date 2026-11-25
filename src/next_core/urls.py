@@ -1,4 +1,5 @@
 from django.urls import include, path
+from django.views.decorators.cache import cache_page
 from drf_spectacular.views import SpectacularJSONAPIView, SpectacularRedocView
 
 from next_core.ledger.urls import operations as ledger_operations
@@ -8,7 +9,11 @@ from next_core.transactions.urls import operations as txn_operations
 
 urlpatterns = [
     path("health/", include("next_core.platform.health.urls")),
-    path("api/schema/openapi.json", SpectacularJSONAPIView.as_view(), name="openapi-schema"),
+    path(
+        "api/schema/openapi.json",
+        cache_page(3600)(SpectacularJSONAPIView.as_view()),
+        name="openapi-schema",
+    ),
     path(
         "api/schema/docs", SpectacularRedocView.as_view(url_name="openapi-schema"), name="api-docs"
     ),

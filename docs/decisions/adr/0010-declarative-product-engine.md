@@ -26,10 +26,13 @@ transactions orchestrator:
   overdraft, lifecycle;
 - logic is expressed only in a **restricted expression language**: Python `ast` parsing plus
   a whitelist interpreter (no `eval`/`exec`), Decimal-only numbers built from literal source
-  text, `min`/`max`/`abs` as the only functions, ≤ 500 chars / ≤ 120 nodes;
+  text, `min`/`max`/`abs` as the only functions, ≤ 500 chars / ≤ 120 nodes, literals bounded
+  (≤ 24 digits, |exponent| ≤ 18), evaluation in a bounded decimal context (exponents ±30)
+  where every decimal signal is a typed error; definitions bounded (≤ 64 KiB, depth ≤ 8,
+  ≤ 50 items per section, ≤ 20 tiers);
 - version lifecycle DRAFT → PENDING_APPROVAL → ACTIVE → SUPERSEDED/RETIRED (or REJECTED),
   activation at approval, maker ≠ checker enforced in application code **and** by a database
-  CHECK; non-draft definitions immutable by trigger; accounts pinned to their version.
+  CHECK; every GL-mapping role type-checked at approval; non-draft definitions immutable by trigger; accounts pinned to their version.
 
 Full reference: [product engine](../../products/product-engine.md).
 

@@ -29,6 +29,9 @@ NAMES = frozenset({"amount", "currency", "kyc_level", "param_cap"})
         "1j",
         "x" * 600,
         " + ".join(["1"] * 80),
+        "9e999999999 * 9e999999999",
+        "max(amount, 1e100000000) - 1",
+        "123456789012345678901234567890",
     ],
 )
 def test_refused_constructs(source: str) -> None:
@@ -73,3 +76,9 @@ def test_type_of_result_is_checked() -> None:
         compile_expression("amount", NAMES).evaluate_bool({"amount": Decimal(1)})
     with pytest.raises(ExpressionError):
         compile_expression("amount > 1", NAMES).evaluate_decimal({"amount": Decimal(2)})
+
+
+def test_overflow_is_a_typed_error_not_a_crash() -> None:
+    expr = compile_expression("amount * amount * amount", NAMES)
+    with pytest.raises(ExpressionError):
+        expr.evaluate({"amount": Decimal("1e15")})

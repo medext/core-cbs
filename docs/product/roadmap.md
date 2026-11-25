@@ -52,7 +52,7 @@ MkDocs site; CLAUDE.md command sections un-TBD'd.
 - [x] No secrets in repo — gitleaks full-history scan green in CI + guard-secrets hook.
 - [x] Human approval: **approved by mohamed@next.mr, 2026-07-18** (incl. ADR-0009: Celery).
 
-## Phase 2 — Tenancy, IAM & audit foundation — **CURRENT**
+## Phase 2 — Tenancy, IAM & audit foundation — **APPROVED 2026-11-25**
 
 **Objective:** Tenant-safe skeleton: no financial code yet, but isolation proven.
 
@@ -81,7 +81,52 @@ scope model; audit event foundation; correlation IDs end-to-end; cross-tenant te
       regression tests; residual risks honestly registered (OD-19..OD-24).
 - [x] CI all 6 jobs green — [run #10](https://github.com/medext/core-cbs/actions/runs/29661840687)
       (commit `4d9b962`); local `make check` ALL GATES PASSED (76 tests, coverage 96%).
+- [x] Human approval: **approved by mohamed@next.mr, 2026-11-25** (with authorization of the compressed MVP track, Phases 3–6).
+
+## MVP track — Phases 3–6 compressed — **CURRENT** (authorized 2026-11-25)
+
+**Decision (OD-37):** on 2026-11-25 the human owner asked for a first complete, testable
+version (ledger, parties, accounts, transactions, product engine, fees, limits) and authorized
+building Phases 3→6 sequentially in one track. Invariants, real-PostgreSQL tests, concurrency
+tests and the reviewer subagents stayed mandatory; the Phase 3–6 gates below are evaluated
+together and need **human approval on the whole**.
+
+**Built** (branch `claude/core-banking-system-mvp-1ryv2t`):
+
+| Phase | Delivered | Not delivered (registered) |
+|---|---|---|
+| 3 Ledger kernel | Money/currency (MRU XOF EUR USD + TND); GL accounts, ledger balances, journal entries, postings with CHECKs and DB triggers (balanced per currency, append-only, writer session flag, funds floor, born-empty); single posting service with UUID-ordered locks; holds in projections; reversals (one per entry); idempotency records in the posting transaction; outbox + `relay_outbox`; `verify_ledger` reconstruction; trial balance; statements; RFC 9457 errors; OpenAPI 3.1 | Accounting periods (OD-29); snapshots/hash chain (OD-15); DB-role separation (OD-14); webhook delivery + Celery (OD-30) |
+| 4 Parties, products, accounts | Party registry + identifiers + KYC outcome; versioned immutable product definitions; accounts pinned to version, lifecycle (ACTIVE/FROZEN/DORMANT/CLOSED), debit/credit blocks, closure controls, mod-97 numbering, append-only history | Account migration between versions; dormancy sweep |
+| 5 Transfers, holds, fees, limits | Deposits, withdrawals, transfers, holds (place/capture/partial/release/expiry), loan disbursement/repayment, reversals, fees (flat/percentage/tiered/expression + tax), limits (transaction/daily/monthly, locked counters), transaction simulation, statements, public API v1 | Webhooks (OD-30); rate limiting; cross-currency (OD-38) |
+| 6 Product configurability | Declarative definition schema v1, restricted expression language (ADR-0010 Proposed), draft→submit→approve workflow with server-side + DB maker-checker, product simulation, seed catalog of 5 products | Future-dated activation (OD-33); separate fee/limit plan objects; GL/CoA change workflow |
+
+Pre-built pieces of later phases: daily interest accrual and capitalization (Phase 8 scope —
+day-by-day, checkpointed per account, value-dated basis, never for a future date), hold expiry,
+hold reconciliation and an idempotent EoD step command/API (partial Phase 7 scope — no step
+framework).
+
+**Combined gate (Phases 3–6):**
+- [ ] All 25 invariants: evidence table in [invariants](../accounting/invariants.md#evidence-mvp-track-2026-11-25) — 22 and 10 partial, period checks deferred.
+- [ ] Property suites pass (balance, reversal symmetry, idempotency, reconstruction, money, fees).
+- [ ] Hostile concurrency suite passes on real PostgreSQL.
+- [ ] `ledger-accounting-reviewer`, `postgres-concurrency-reviewer`, `security-reviewer` verdicts received and findings fixed (see *Review outcomes*); re-verification by the reviewers and the `documentation-reviewer` verdict: pending.
+- [ ] No API path mutates a balance directly (contract test + review).
+- [ ] Historical transactions stay linked to the product version in force (e2e).
+- [ ] Config changes cannot rewrite historical accounting; no arbitrary code execution (expression-language tests + review).
+- [ ] E2E open→fund→transfer→hold→capture→reverse→statement→EoD passes.
+- [ ] `make check` and CI green.
 - [ ] Human approval: _pending_.
+
+### Review outcomes (first pass, 2026-11-25)
+
+The fixes below are implemented with regression tests; **the reviewers have not yet
+re-verified them**.
+
+| Reviewer | Verdict | Findings → status |
+|---|---|---|
+| `ledger-accounting-reviewer` | **BLOCK** | **B1** interest accruable/capitalizable for any (future) date on today's balance with wrong value dates → **fixed**: future dates refused, per-account `interest_accrued_through` checkpoint, day-by-day catch-up, value-dated basis (`book_balance_as_of`), value_date = accrual day, accrual stops before maturity. **C1** invariant 15 → DB trigger for `TRANSACTION` sources (transactions migration 0004). **C2** postings appended to committed entries → refused (`created_txid`, ledger migration 0003). **C3** `TRUNCATE` bypass → *deferred* (OD-40, role separation). **C4** GL roles not type-checked → every role checked at approval. **C5** integrity snapshot → REPEATABLE READ READ ONLY. **C6** `held_amount` unreconciled → `reconcile_holds()` in EoD. **C7** reversal overdraw policy → documented exception (balance-semantics, invariant 18). **C8** missing tests → added (simultaneous holds, expiry vs capture, forced deadlock retry, value-dated accrual, holds reconciliation); Hypothesis coverage of fee entries/interest legs still limited. S1 (precision) fixed; S2 (accrual after maturity) fixed. |
+| `postgres-concurrency-reviewer` | APPROVE-WITH-CONDITIONS | **C1** reverse-vs-capture lock gap → fixed (re-check after locking; retryable `REQUEST_IN_PROGRESS`). **C2** hot internal balances → `lock_timeout` added; sharding *deferred* (OD-39). **C3** outbox per-aggregate ordering → fixed (single relay per tenant via advisory lock; failed event holds back its aggregate). **C4** missing tests / no jitter → jittered retry + tests added (deadlock retry, simultaneous holds, expiry vs capture, identical replay body); kill-worker and ambiguous-outcome tests still missing. S1 (sweep retries) open. |
+| `security-reviewer` | APPROVE-WITH-CONDITIONS | **H1** reversal by its initiator → four-eyes rule in code + DB trigger; full request→approve flow *deferred* (OD-41). **H2** `api_client` breadth → `loans:disburse` split off (not granted to `api_client`); account/channel scoping *open* (OD-42). **M1** expression overflow → bounded literals, bounded context, typed errors. **M2** definition size → bounds (64 KiB, depth 8, 50 items, 20 tiers). **M3** single-actor retire → documented exception (OD-43). **M4** cross-tenant coverage → every object route tested (`tests/e2e/test_cross_tenant_all_routes.py`). **L1** expression source in errors → removed. **L2** public schema → cached; Redoc CDN noted (OD-44). L3 (predictable account numbers — API uses UUIDs) and L4 (`exc_info` logging) noted, no change. |
 
 ## Phase 3 — Ledger kernel ⚠️ most critical
 
@@ -142,6 +187,9 @@ approve→activate workflow; simulation; maker-checker on all config changes.
 
 ## Phase 7 — Reconciliation & business-day operations
 
+*MVP note: hold expiry and interest steps exist as an idempotent EoD command/API; the
+resumable step framework, periods and trial-balance close remain Phase 7.*
+
 **Scope:** business date; accounting periods; EoD workflow (resumable, idempotent); external
 record ingestion; matching rules & engine; exceptions & investigation; maker-checker
 adjustments; trial balance; operational reports.
@@ -153,6 +201,10 @@ adjustments; trial balance; operational reports.
 - [ ] Human approval: _pending_.
 
 ## Phase 8 — Interest & advanced capabilities
+
+*MVP note: daily accrual (ACT/365, ACT/360, ACT/ACT) and capitalization (monthly / at
+maturity) and term deposits are pre-built; withholding tax, scheduled/standing orders and
+dormancy remain.*
 
 **Scope:** interest-rate plans, daily accrual, capitalization, withholding tax; scheduled
 transactions; standing orders; dormancy; additional account types (term deposits).
@@ -186,3 +238,4 @@ checklist; known-limitations register; production-readiness review.
 |---|---|---|---|
 | 0 | mohamed@next.mr | 2026-07-18 | Blueprint + ADRs 0001–0008 accepted; Phase 1 authorized |
 | 1 | mohamed@next.mr | 2026-07-18 | Engineering foundation accepted (CI run #3 evidence); ADR-0009 (Celery) accepted; Phase 2 authorized |
+| 2 | mohamed@next.mr | 2026-11-25 | Tenancy/IAM/audit foundation accepted (CI run #10); compressed MVP track (Phases 3–6) authorized; OD-1 confirmed (MRU/XOF/EUR/USD) |

@@ -79,6 +79,10 @@ DATABASES = {"default": env.db_url("DATABASE_URL")}
 if not DATABASES["default"]["ENGINE"].endswith("postgresql"):  # pragma: no cover - guard
     raise RuntimeError("DATABASE_URL must point to PostgreSQL (ADR-0003).")
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("DATABASE_CONN_MAX_AGE", default=60)
+# Bounded lock waits (concurrency review C2): a blocked financial write fails fast as a
+# retryable 503 instead of queueing forever behind a hot row.
+DB_LOCK_TIMEOUT_MS = env.int("DATABASE_LOCK_TIMEOUT_MS", default=5000)
+DATABASES["default"].setdefault("OPTIONS", {})["options"] = f"-c lock_timeout={DB_LOCK_TIMEOUT_MS}"
 
 # Django's built-in Redis backend (not django-redis, which env.cache_url would select).
 _redis_url = env("REDIS_URL", default="")

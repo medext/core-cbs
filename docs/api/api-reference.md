@@ -11,8 +11,10 @@
 
 - **OpenAPI 3.1** generated from the code (drf-spectacular): `GET /api/schema/openapi.json`
   (public, no tenant, no token). A committed copy lives at `docs/api/openapi.json` and is
-  contract-tested against the generated schema.
-- **Redoc** rendering: `GET /api/schema/docs`.
+  contract-tested against the generated schema. The endpoint response is cached for 1 hour
+  per process.
+- **Redoc** rendering: `GET /api/schema/docs` — the page loads its JavaScript from a public
+  CDN; disable or self-host it for production/air-gapped installs (OD-44).
 
 ## Common headers
 
@@ -28,7 +30,10 @@ Conventions: amounts are **decimal strings in major units** with at most the cur
 (`"100.00"` MRU/EUR/USD, `"750"` XOF) plus a `currency` field; excess precision is rejected.
 IDs are UUIDs. Write bodies reject unknown fields (`400 VALIDATION_ERROR`). Errors are RFC 9457
 problem details (`application/problem+json`). Out-of-tenant or unknown resources → `404
-RESOURCE_NOT_FOUND`.
+RESOURCE_NOT_FOUND`. An HTTP method a route does not support → `405 METHOD_NOT_ALLOWED`. Lock
+waits are bounded (`lock_timeout`, default 5 s); lock timeouts, deadlocks or serialization
+failures that survive the built-in retries → `503 DEPENDENCY_UNAVAILABLE` (retryable — retry
+with the same `Idempotency-Key`).
 
 ## Parties
 
@@ -52,7 +57,7 @@ Individuals require `given_name` or `family_name`; organizations require `legal_
 | `GET /api/v1/products/templates` | `products:read` | — | — | seed definitions | — |
 | `POST /api/v1/products/validate` | `products:read` | — | `definition` | summary (`valid`, fees, limits, rules) | `VALIDATION_ERROR` |
 | `GET /api/v1/products/{id}` | `products:read` | — | — | product | `RESOURCE_NOT_FOUND` |
-| `POST /api/v1/products/{id}/retire` | `products:approve` | — | — | retired version | `CONFLICT_STATE` |
+| `POST /api/v1/products/{id}/retire` | `products:approve` | — | — | retired version | `RESOURCE_NOT_FOUND`, `CONFLICT_STATE` (no ACTIVE version). Single-actor change (documented exception, OD-43). |
 | `POST /api/v1/products/{id}/simulate` | `products:read` | — | `operation`, `amount`, `currency`, `channel`, `kyc_level`, `book_balance`, `account_age_days`, `days_to_maturity`, `parameter_overrides`, optional `version` | `allowed`, `rules[]`, `fees[]`, `limits[]` | `PRODUCT_NOT_ACTIVE`, `VALIDATION_ERROR` |
 | `GET /api/v1/products/{id}/versions` | `products:read` | — | — | versions | — |
 | `POST /api/v1/products/{id}/versions` | `products:write` | — | `definition` | 201 new DRAFT | `CONFLICT_STATE` (open draft exists), `VALIDATION_ERROR` |
@@ -94,7 +99,7 @@ the same key (OD-35).
 | `GET /api/v1/transactions` | `transactions:read` | — | filters `account_id`, `type`, `state`; cursor | — |
 | `GET /api/v1/transactions/{id}` | `transactions:read` | — | — | `RESOURCE_NOT_FOUND` |
 | `GET /api/v1/transactions/{id}/transitions` | `transactions:read` | — | — | — |
-| `POST /api/v1/transactions/{id}/reversal` | `transactions:reverse` | **yes** | `reason` | `CONFLICT_STATE` (not POSTED / not reversible), `ACCOUNT_STATE_INVALID` (closed account) |
+| `POST /api/v1/transactions/{id}/reversal` | `transactions:reverse` | **yes** | `reason` | `MAKER_CHECKER_VIOLATION` (403: the caller initiated the original — four-eyes rule), `CONFLICT_STATE` (not POSTED / not reversible), `ACCOUNT_STATE_INVALID` (closed account), `REQUEST_IN_PROGRESS` (retryable 409: a concurrent hold capture changed the transaction) |
 
 Transaction body: `id`, `type`, `state`, `is_terminal`, `funds_reserved`, `amount`,
 `currency`, `debit_account_id`, `credit_account_id`, `fees[] {code, account_id, amount, tax,
@@ -117,7 +122,7 @@ Expired ACTIVE holds are voided by the EoD step (`EXPIRED`).
 
 | Method & path | Permission | Idem | Request | Main errors |
 |---|---|---|---|---|
-| `POST /api/v1/loans/{loan_account_id}/disbursements` | `transactions:post` | **yes** | `target_account_id`, `amount`, `currency`, … | `CREDIT_LIMIT_EXCEEDED`, `OPERATION_NOT_ALLOWED` |
+| `POST /api/v1/loans/{loan_account_id}/disbursements` | `loans:disburse` (credit decision; not granted to `api_client`) | **yes** | `target_account_id`, `amount`, `currency`, … | `CREDIT_LIMIT_EXCEEDED`, `OPERATION_NOT_ALLOWED` |
 | `POST /api/v1/loans/{loan_account_id}/repayments` | `transactions:post` | **yes** | `source_account_id`, `amount`, `currency`, … | `AMOUNT_EXCEEDS_OUTSTANDING`, `INSUFFICIENT_FUNDS` |
 
 ## Ledger (read-only) and operations
@@ -130,8 +135,8 @@ transactions.
 | `GET /api/v1/ledger/gl-accounts` | `ledger:read` | — | chart of accounts |
 | `GET /api/v1/ledger/trial-balance` | `ledger:read` | — | per GL × currency debit/credit totals and net; per-currency `balanced` flag |
 | `GET /api/v1/ledger/entries/{id}` | `ledger:read` | — | journal entry with postings, `reversal_of`, `reversed_by` |
-| `POST /api/v1/operations/integrity-runs` | `operations:run` | — | 201 integrity run: reconstruct projections from postings, check balanced entries |
-| `POST /api/v1/operations/eod` | `operations:run` | — (idempotent by design: deterministic ids) | `business_date` (optional) → holds expired, interest accrued/capitalized counts |
+| `POST /api/v1/operations/integrity-runs` | `operations:run` | — | 201 integrity run: reconstruct projections from postings inside one REPEATABLE READ snapshot, check balanced entries |
+| `POST /api/v1/operations/eod` | `operations:run` | — (idempotent by design: checkpoints + deterministic ids) | `business_date` (optional, default today; **a future date → `400 VALIDATION_ERROR`**) → `{business_date, holds_expired, hold_reconciliation_findings[], interest: {accounts_considered, accrued, capitalized}}`. `interest.accrued` counts accrual **days** posted (day-by-day catch-up from each account's checkpoint); `hold_reconciliation_findings` lists accounts whose `held_amount` ≠ Σ ACTIVE holds (empty when consistent). |
 
 ## Audit
 
@@ -155,6 +160,8 @@ uv run python manage.py runserver 0.0.0.0:8000
 
 Tokens come from the tenant's OIDC realm (Keycloak in the compose `iam` profile). Below,
 `$T` is a token with roles `teller supervisor operations`; `H` sets the common headers.
+`$T2` is a token of a **different** principal with the `supervisor` role: the four-eyes rule
+forbids the initiator of a transaction from reversing it.
 
 ```bash
 H=(-H "X-Tenant-ID: alpha" -H "Authorization: Bearer $T" -H "Content-Type: application/json")
@@ -183,8 +190,9 @@ HOLD=$(curl -s "${H[@]}" -H "Idempotency-Key: hold-001" $API/holds \
 curl -s "${H[@]}" -H "Idempotency-Key: cap-001" $API/holds/$HOLD/capture \
   -d "{\"target_account_id\":\"$B\",\"amount\":\"250.00\",\"currency\":\"MRU\"}"
 
-# 6. Reverse the transfer (needs transactions:reverse)
-curl -s "${H[@]}" -H "Idempotency-Key: rev-001" $API/transactions/$TX/reversal -d '{"reason":"dispute"}'
+# 6. Reverse the transfer: another principal with transactions:reverse (four-eyes rule)
+curl -s -H "X-Tenant-ID: alpha" -H "Authorization: Bearer $T2" -H "Content-Type: application/json" \
+  -H "Idempotency-Key: rev-001" $API/transactions/$TX/reversal -d '{"reason":"dispute"}'
 
 # 7. Statement and qualified balances
 curl -s "${H[@]}" "$API/accounts/$A/statement?limit=50"

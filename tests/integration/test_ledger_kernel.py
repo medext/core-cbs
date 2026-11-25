@@ -18,6 +18,7 @@ from next_core.platform.errors import (
     ConflictStateError,
     CurrencyMismatchError,
     InsufficientFundsError,
+    NotFoundError,
     UnbalancedEntryError,
 )
 from next_core.platform.money import Money
@@ -286,3 +287,28 @@ def test_integrity_detects_projection_tampering(alpha: TenantContext) -> None:
     assert run.findings[0]["kind"] == "PROJECTION_MISMATCH"
     assert Posting.objects.count() == 2
     assert LedgerBalance.objects.count() == 3
+
+
+@pytest.mark.django_db(databases=TENANT_DBS, transaction=True)
+def test_db_refuses_postings_appended_to_committed_entry(alpha: TenantContext) -> None:
+    vault, a, _ = _setup()
+    result = _deposit(vault, a, 100)
+    entry_id = result.entries[0].id
+    with (
+        pytest.raises(DatabaseError, match="transaction that created it"),
+        transaction.atomic(using=alpha.db_alias),
+        connections[alpha.db_alias].cursor() as cur,
+    ):
+        cur.execute("SELECT set_config('next_core.ledger_writer','on',true)")
+        for line, (bid, direction) in enumerate([(vault.id, "DEBIT"), (a.id, "CREDIT")], 10):
+            cur.execute(
+                "INSERT INTO ledger_posting (tenant_id, entry_id, balance_id, line_no, "
+                "direction, amount, currency) VALUES (%s, %s, %s, %s, %s, 50, 'MRU')",
+                [str(alpha.tenant_id), str(entry_id), str(bid), line, direction],
+            )
+
+
+def test_db_refuses_transaction_source_that_does_not_exist(alpha: TenantContext) -> None:
+    vault, a, _ = _setup()
+    with pytest.raises(NotFoundError):
+        ledger.post(ledger.PostingRequest("TRANSACTION", uuid.uuid4(), (_move(vault.id, a.id, 5),)))

@@ -118,3 +118,14 @@ def alpha(tenants: dict[str, Tenant]) -> Iterator[TenantContext]:
     """Tenant 'alpha' context established for the test body."""
     with tenant_context(ctx_for(tenants["alpha"])) as ctx:
         yield ctx
+
+
+@pytest.fixture()
+def seeded(tenants: dict[str, Tenant]) -> dict[str, Tenant]:
+    """Both tenants bootstrapped with the seed CoA and product catalog."""
+    from next_core.products.management.commands.bootstrap_tenant import bootstrap_current_tenant
+
+    for t in tenants.values():
+        with tenant_context(ctx_for(t)):
+            bootstrap_current_tenant()
+    return tenants

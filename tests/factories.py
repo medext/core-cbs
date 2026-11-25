@@ -15,6 +15,7 @@ from next_core.products.models import Product
 from next_core.transactions import application as txns
 
 TELLER = Actor("teller-1@alpha", "USER")
+SUPERVISOR = Actor("supervisor-1@alpha", "USER")
 _seq = itertools.count(1)
 
 

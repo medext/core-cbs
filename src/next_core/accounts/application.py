@@ -232,6 +232,15 @@ def touch_activity(account: Account, on: date) -> None:
         account.save(update_fields=["last_activity_on", "updated_at"])
 
 
+def mark_interest_accrued(account: Account, through: date) -> None:
+    """Advance the accrual checkpoint (caller holds the account lock; same transaction as
+    the accrual postings)."""
+    if account.interest_accrued_through is not None and through < account.interest_accrued_through:
+        raise ConflictStateError("The accrual checkpoint cannot move backwards.")
+    account.interest_accrued_through = through
+    account.save(update_fields=["interest_accrued_through", "updated_at"])
+
+
 def ensure_operable(snap: AccountSnapshot, *, debit: bool) -> None:
     a = snap.account
     if a.status != AccountStatus.ACTIVE:
@@ -339,6 +348,10 @@ def _status_evidence(account: Account, old: str, reason: str, actor: Actor) -> N
             "credit_blocked": account.credit_blocked,
         },
     )
+
+
+def principal_balances() -> list[tuple[UUID, UUID]]:
+    return list(Account.objects.order_by("id").values_list("id", "principal_balance_id"))
 
 
 def interest_bearing_accounts() -> list[UUID]:

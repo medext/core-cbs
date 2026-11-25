@@ -183,15 +183,24 @@ def submit(product_id: UUID, version_no: int, actor: Actor) -> ProductVersion:
 
 
 def _check_accounting(defn: ProductDefinition) -> None:
+    side = "LIABILITY" if defn.balance_side == BalanceSide.LIABILITY else "ASSET"
+    expected_types = {
+        "principal": side,
+        "accrued_interest": side,
+        "cash": "ASSET",
+        "fee_income": "INCOME",
+        "interest_income": "INCOME",
+        "interest_expense": "EXPENSE",
+        "tax_payable": "LIABILITY",
+    }
     for role, code in defn.gl_mapping.items():
         gl = gl_account(code)
-        if role == "principal":
-            expected = "LIABILITY" if defn.balance_side == BalanceSide.LIABILITY else "ASSET"
-            if gl.type != expected:
-                raise ValidationFailedError(
-                    f"GL '{code}' is {gl.type}; a {defn.balance_side.value} product's principal "
-                    f"must map to a {expected} account."
-                )
+        expected = expected_types[role]
+        if gl.type != expected:
+            raise ValidationFailedError(
+                f"GL '{code}' is {gl.type}; role '{role}' of a {defn.balance_side.value} "
+                f"product must map to a {expected} account."
+            )
 
 
 def approve(product_id: UUID, version_no: int, actor: Actor, reason: str = "") -> ProductVersion:
@@ -240,6 +249,7 @@ def reject(product_id: UUID, version_no: int, actor: Actor, reason: str) -> Prod
 
 def retire(product_id: UUID, actor: Actor) -> ProductVersion:
     """Stop selling the product: no new accounts; existing accounts keep their version."""
+    get_product(product_id)  # 404 (not 409) for unknown / foreign products
     with transaction.atomic(using=_alias()):
         version = (
             ProductVersion.objects.select_for_update()

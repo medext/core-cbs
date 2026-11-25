@@ -64,13 +64,22 @@ Amounts follow the ADR-0004 wire format. Payloads carry ids and business facts o
 
 ### Relay and delivery semantics
 
-- `manage.py relay_outbox [--tenant slug] [--batch-size N]` drains pending events per tenant:
-  `SELECT … FOR UPDATE SKIP LOCKED ORDER BY seq`, deliver to a sink, mark `DISPATCHED`.
-  Concurrent relays do not double-claim a row.
-- **At-least-once**, ordered by `seq` within a tenant database (hence per aggregate).
-  Consumers must deduplicate on `id`.
+- `manage.py relay_outbox [--tenant slug] [--batch-size N]` drains pending events per tenant.
+  **One relay per tenant database at a time**: each batch transaction first takes
+  `pg_try_advisory_xact_lock(hashtext('next_core.outbox_relay'))`; a concurrent relay that
+  cannot get it returns immediately (the advisory lock coordinates only — it guards no
+  financial state). The batch is `SELECT … FOR UPDATE ORDER BY seq`, delivered to a sink and
+  marked `DISPATCHED`.
+- **At-least-once, ordered per aggregate.** Events are delivered in `seq` order; when an
+  event fails, every later event of the **same aggregate** in that batch is held back (stays
+  `PENDING`) so it can never overtake it. Events of other aggregates continue. Consumers must
+  deduplicate on `id`.
 - Transport failures (`OSError`, `ValueError`, `RuntimeError` from the sink) increment
-  `attempts`, record the error class; after 10 attempts the event becomes `DEAD`.
+  `attempts`, record the error class; after 10 attempts the event becomes `DEAD` (later
+  events of that aggregate are then released on the next batch — the dead event needs
+  operator replay).
+- The sink is called inside the batch transaction (row locks held during delivery); with
+  the log sink this is negligible — an HTTP sink must move delivery outside the lock (OD-30).
 - **Current sink: structured log only.** HTTP webhook delivery (HMAC signing, per-tenant
   secrets, retry schedule, endpoint suspension, replay tooling, delivery logs) and the Celery
   relay worker (ADR-0009) are **not built yet** — OD-30.

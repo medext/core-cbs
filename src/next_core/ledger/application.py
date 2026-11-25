@@ -283,6 +283,19 @@ def balances_for_owner(owner_id: UUID) -> list[BalanceView]:
     return [_view(b) for b in qs.order_by("purpose", "currency")]
 
 
+def book_balance_as_of(balance_id: UUID, on: date) -> int:
+    """Book balance from postings whose entry value_date ≤ ``on`` (value-dated economics:
+    interest bases). Exact: recomputed from postings, never from the projection."""
+    b = LedgerBalance.objects.get(id=balance_id)
+    side = Direction(b.normal_side)
+    totals = {"DEBIT": 0, "CREDIT": 0}
+    for direction, amount in Posting.objects.filter(
+        balance_id=balance_id, entry__value_date__lte=on
+    ).values_list("direction", "amount"):
+        totals[direction] += amount
+    return book_balance(side, totals["DEBIT"], totals["CREDIT"])
+
+
 def set_balance_policy(
     balance_id: UUID, *, funds_enforced: bool, overdraft_limit: int
 ) -> BalanceView:
@@ -437,6 +450,8 @@ def post(request: PostingRequest) -> PostingResult:
                     )
                 )
         except IntegrityError as exc:
+            if getattr(exc.__cause__, "sqlstate", None) == "23503":
+                raise NotFoundError("The business source of this entry does not exist.") from exc
             raise ConflictStateError(
                 "This business source already produced that journal entry (or the entry "
                 "was already reversed)."

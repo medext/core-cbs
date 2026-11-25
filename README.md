@@ -1,25 +1,68 @@
 # Next Core — Bank-Grade Lightweight Core Banking System
 
-**Status: Phase 2 — Tenancy, IAM & audit foundation (delivered; gate awaiting human approval)**
+**Status: MVP track (Phases 3–6 compressed) — first complete, testable version built
+2026-11-25; combined gate awaiting reviewer verdicts and human approval.**
 
-Next Core is a modern, lightweight, bank-grade Core Banking System designed as real financial
-infrastructure — not a prototype. It targets regulated banks, electronic money institutions,
-fintechs, government institutions, and financial service providers, deployable as multi-tenant
-SaaS, dedicated SaaS, or on-premise (including air-gapped) from **one common codebase**.
+Next Core is a modern, lightweight, API-first core banking system designed as real financial
+infrastructure. It targets regulated banks, electronic money institutions, fintechs and
+microfinance institutions, deployable as multi-tenant SaaS, dedicated SaaS, or on-premise
+from **one codebase**. Correctness, accounting integrity, tenant isolation and security take
+precedence over speed.
 
-Correctness, accounting integrity, traceability, tenant isolation, operability, maintainability,
-and security take precedence over implementation speed.
+## What it does today
 
-## What is in this repository right now
+- **Ledger kernel** — double-entry, append-only journal; per-currency balanced entries
+  enforced in code *and* by PostgreSQL triggers; balances are projections reconstructable from
+  postings (`verify_ledger`); integer minor units only.
+- **Product engine** — any deposit, wallet, term-deposit or loan product is a versioned,
+  immutable JSON definition: typed parameters with account overrides, fees (flat, percentage,
+  tiered, formula), limits (per transaction / daily / monthly), operation guards, interest,
+  overdraft & credit lines, lifecycle rules — with a sandboxed expression language (no code
+  execution) and maker-checker approval. See
+  [`docs/products/product-engine.md`](docs/products/product-engine.md).
+- **Parties** (customers, identifiers, KYC outcome), **accounts** (lifecycle, blocks, closure,
+  mod-97 numbers), **transactions** (deposits, withdrawals, transfers, holds with partial
+  capture, loan disbursement/repayment, four-eyes reversals, dry-run simulation), **interest** accrual
+  (day-by-day, value-dated) and capitalization, **EoD** steps, **audit trail** and **transactional outbox**.
+- **API v1** — idempotent financial writes (`Idempotency-Key`), RFC 9457 errors, OpenAPI 3.1
+  (`/api/schema/openapi.json`). Endpoint list: [`docs/api/api-reference.md`](docs/api/api-reference.md).
+- **Multi-tenancy** — database per tenant, explicit tenant context, no default tenant; OIDC
+  tokens bound to the tenant's realm; on-premise single-tenant profile without control plane.
 
-The **Phase 0 blueprint** (approved 2026-07-18) and **Phase 1 engineering foundation**
-(approved 2026-07-18), plus the **Phase 2 tenancy/IAM/audit foundation**: explicit tenant
-context with database-per-tenant routing that hard-fails without a tenant, a control-plane
-tenant registry (absent at runtime on-premise), migration fan-out tooling, an OIDC
-authentication boundary with per-tenant issuer binding, a permission framework, an
-append-only audit trail with the first tenant-scoped API endpoint, and a 6-job CI pipeline
-(including on-prem-boot and compose runtime smoke). **No financial logic exists yet** — the
-ledger kernel is Phase 3, after the Phase 2 gate is approved.
+```mermaid
+flowchart LR
+    API[API v1 / DRF] --> TRX[transactions]
+    API --> ACC[accounts] & PRD[products] & PTY[parties]
+    TRX --> ACC
+    TRX --> PRC[pricing] & LIM[limits]
+    TRX -->|single posting service| LED[(ledger)]
+    ACC --> PTY & PRD
+    ACC -->|open balances| LED
+    LED --> OUT[outbox] --> RELAY[relay]
+    subgraph Platform
+      TEN[tenancy] --- IAM[iam] --- AUD[audit]
+    end
+```
+
+## Quickstart (local, real PostgreSQL)
+
+```bash
+uv sync
+make test-db-start                       # local PostgreSQL 16 on :5433 (no Docker needed)
+make check                               # lint + mypy strict + tests + docs
+export NEXT_CORE_PROFILE=local DJANGO_SETTINGS_MODULE=next_core.settings.local
+uv run python manage.py migrate          # control database
+uv run python manage.py migrate_tenants  # every active tenant database
+uv run python manage.py bootstrap_tenant # seed chart of accounts + 5 demo products
+uv run python manage.py runserver 0.0.0.0:8000
+```
+
+Tenants are registered in the control-plane registry (SaaS profiles); API calls need
+`X-Tenant-ID` and a bearer token from the tenant's OIDC realm — run Keycloak with
+`docker compose --profile iam up`. The full curl walkthrough is in the
+[API reference](docs/api/api-reference.md#quickstart-walkthrough-local); the same flow runs
+in `tests/e2e/test_api_flows.py`. Operational commands: `relay_outbox`, `verify_ledger`,
+`run_eod_steps`.
 
 **Resuming work? Read [`STATUS.md`](STATUS.md) first** — it always holds the current state
 and the exact next step.
@@ -35,6 +78,8 @@ and the exact next step.
 | Planning the build | [`docs/product/roadmap.md`](docs/product/roadmap.md) + [`docs/product/development-workflow.md`](docs/product/development-workflow.md) |
 | An engineer starting Phase 1+ | [`CLAUDE.md`](CLAUDE.md), then [`docs/architecture/repository-structure.md`](docs/architecture/repository-structure.md) |
 | Interested in the ledger design | [`docs/accounting/ledger-architecture.md`](docs/accounting/ledger-architecture.md) |
+| Configuring products | [`docs/products/product-engine.md`](docs/products/product-engine.md) |
+| Integrating with the API | [`docs/api/api-reference.md`](docs/api/api-reference.md) |
 
 ## Documentation map
 
@@ -44,9 +89,10 @@ docs/
   product/        PRD, scope, roadmap & acceptance gates, development workflow, capacity model
   architecture/   C4 diagrams, tenancy & deployment, idempotency & concurrency, repo structure
   domain/         Glossary, domain model & bounded contexts, transaction lifecycle
-  accounting/     Ledger architecture, accounting model, invariants, balance semantics, CoA
-  api/            API standards (binding rules live), error catalog (first codes implemented)
-  events/         Event & webhook standards (skeleton — Phase 3+)
+  accounting/     Ledger architecture (as built), accounting model, invariants + evidence, balance semantics, CoA
+  products/       Product engine reference (definition schema, expression language, seed catalog)
+  api/            API reference, API standards, error catalog, OpenAPI document
+  events/         Event standards, outbox envelope & event catalog (webhook delivery: OD-30)
   security/       Threat model, security architecture, authorization matrix, control readiness
   deployment/     Environment reference (authored); SaaS/on-premise guides (skeleton — Phase 9+)
   operations/     Observability & operations (skeleton — Phase 9+)
@@ -68,6 +114,7 @@ updated in the same change as the code it describes.
 - **Integer minor units** for money — never floating point ([ADR-0004](docs/decisions/adr/0004-money-representation.md))
 - **Database-per-tenant** isolation for regulated financial data ([ADR-0005](docs/decisions/adr/0005-multi-tenancy-model.md))
 - External IAM (Keycloak reference implementation), OAuth 2.0 / OIDC ([ADR-0008](docs/decisions/adr/0008-external-iam.md))
+- **Declarative product engine** with a restricted expression language — no tenant code execution ([ADR-0010](docs/decisions/adr/0010-declarative-product-engine.md), proposed)
 
 ## Implementation phases
 
@@ -75,13 +122,13 @@ updated in the same change as the code it describes.
 |---|---|---|
 | 0 | Architecture blueprint & PRD | ✅ Approved 2026-07-18 |
 | 1 | Repository & engineering foundation | ✅ Approved 2026-07-18 |
-| 2 | Tenancy, IAM & audit foundation | ✅ Delivered — **gate awaiting approval** |
-| 3 | Ledger kernel | — |
-| 4 | Parties, products & customer accounts | — |
-| 5 | Transfers, holds, fees & limits | — |
-| 6 | Posting rules & product configurability | — |
-| 7 | Reconciliation & business-day operations | — |
-| 8 | Interest & advanced account capabilities | — |
+| 2 | Tenancy, IAM & audit foundation | ✅ Approved 2026-11-25 |
+| 3 | Ledger kernel | 🔨 MVP track — built, gate pending |
+| 4 | Parties, products & customer accounts | 🔨 MVP track — built, gate pending |
+| 5 | Transfers, holds, fees & limits | 🔨 MVP track — built (webhooks deferred), gate pending |
+| 6 | Posting rules & product configurability | 🔨 MVP track — built (ADR-0010 proposed), gate pending |
+| 7 | Reconciliation & business-day operations | Partial pre-build (EoD steps) |
+| 8 | Interest & advanced account capabilities | Partial pre-build (interest, term deposits) |
 | 9 | Production hardening | — |
 | 10 | Reference deployments & release candidate | — |
 

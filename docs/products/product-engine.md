@@ -77,13 +77,18 @@ A map must cover **every** currency listed in `currencies` and nothing else. Rat
 strings (`"0.0125"`), never JSON numbers. Validation reports **all** field errors at once in
 `errors[]` of a `400 VALIDATION_ERROR` (paths like `fees[0].calculation.rate`).
 
+**Resource bounds** (checked before parsing, `MAX_*` in `products/definition.py`): serialized
+document ≤ 64 KiB; JSON nesting depth ≤ 8; ≤ 50 items in each of `fees`, `limits`,
+`operation_rules` and `parameters`; ≤ 20 tiers per tiered fee. Violations → `400
+VALIDATION_ERROR`.
+
 | Field | Type | Required | Rules |
 |---|---|---|---|
 | `schema_version` | int | no (default 1) | Only `1` is supported. |
 | `category` | enum | yes | `CURRENT_ACCOUNT`, `SAVINGS`, `TERM_DEPOSIT`, `WALLET`, `LOAN`, `INTERNAL`. Cannot change across versions. |
 | `balance_side` | enum | yes | `LIABILITY` (deposits; customer balance is credit-normal) or `ASSET` (lending; debit-normal). |
 | `currencies` | list | yes | Non-empty, unique, supported ISO-4217 codes (`MRU`, `XOF`, `EUR`, `USD`, `TND`). |
-| `gl_mapping` | object | yes | Role → GL account code. Required roles: `principal`, `cash`, `fee_income`, `tax_payable`. Optional: `accrued_interest`, `interest_expense`, `interest_income`. Unknown roles rejected. At approval every code must exist and be active, and `principal` must be a LIABILITY account for LIABILITY products / ASSET account for ASSET products. |
+| `gl_mapping` | object | yes | Role → GL account code. Required roles: `principal`, `cash`, `fee_income`, `tax_payable`. Optional: `accrued_interest`, `interest_expense`, `interest_income`. Unknown roles rejected. At approval every code must exist and be active, and **every role is type-checked**: `principal` and `accrued_interest` = the product side (LIABILITY or ASSET); `cash` = ASSET; `fee_income`, `interest_income` = INCOME; `interest_expense` = EXPENSE; `tax_payable` = LIABILITY. A mismatch is a `400 VALIDATION_ERROR` at approval. |
 | `parameters` | object | no | Name (Python identifier, ≤ 40 chars) → parameter spec (below). |
 | `allowed_operations` | list | yes | Non-empty subset of `DEPOSIT`, `WITHDRAWAL`, `TRANSFER_OUT`, `TRANSFER_IN`, `HOLD`, `DISBURSEMENT`, `REPAYMENT`. LIABILITY products may not allow `DISBURSEMENT`/`REPAYMENT`; ASSET products allow **only** those two. |
 | `operation_rules` | list | no | Guards (below). Codes unique. |
@@ -144,6 +149,8 @@ Semantics (`pricing/fees.py`, deterministic — same inputs, same outputs):
   increasing per currency; only the last tier is open-ended (`"up_to": null`) and it must be.
 - `EXPRESSION`: formula evaluated in **major units**, quantized with the rule's rounding. A
   negative result → `PRODUCT_RULE_VIOLATION`.
+- All fee arithmetic (`net`, `tax`) runs at 50-digit decimal precision and is quantized
+  **once**, so no double rounding occurs on ties.
 - Fees computing to zero are omitted. Fees are posted as separate journal entries
   (purpose `FEE<D|C><n>:<code>`) in the same DB transaction as the principal, and are mirrored
   by a reversal.
@@ -183,15 +190,29 @@ Requires `gl_mapping.accrued_interest`, plus `interest_expense` (LIABILITY) or
 `interest_income` (ASSET). An account of such a product gets a second ledger balance with
 purpose `ACCRUED_INTEREST` mapped to `accrued_interest`.
 
-- **Daily accrual** (`pricing/interest.py`): `principal book balance × rate / days_in_year`,
-  quantized **once per day** to minor units (no sub-minor carry — OD-31); zero when the book
-  balance is ≤ 0, below `minimum_balance`, or the rate is ≤ 0.
+- **Daily accrual** (`pricing/interest.py`): `basis × rate / days_in_year`, computed at
+  50-digit precision and quantized **once per day** to minor units (no sub-minor carry —
+  OD-31); zero when the basis is ≤ 0, below `minimum_balance`, or the rate is ≤ 0.
+- **Basis = value-dated book balance**: the principal book balance *as of the accrual day*,
+  recomputed from postings whose entry `value_date` ≤ that day
+  (`ledger.application.book_balance_as_of`) — never today's projection. A deposit value-dated
+  later does not inflate earlier days.
+- **Day-by-day, checkpointed, never in the future**: each account carries
+  `interest_accrued_through`. A run for date *D* accrues every day from the checkpoint + 1
+  (or the opening date) through *D*, in order, then advances the checkpoint in the same DB
+  transaction; at most 400 days per run (`CONFLICT_STATE` beyond — catch up in several runs).
+  *D* after the current business date is refused (`400 VALIDATION_ERROR`). Accrual stops the
+  day **before** the maturity date. Each accrual transaction and entry carries
+  `value_date` = the accrual day.
 - **Ledger legs**: the accrued balance grows on its normal side; the P&L counterpart takes the
   other side — LIABILITY: DR `interest_expense` / CR accrued interest payable; ASSET:
   DR accrued interest receivable / CR `interest_income`.
 - **Capitalization** moves the full accrued book balance into principal (decrease accrued,
   increase principal): `MONTHLY` runs only when the run date is the 1st of a month;
-  `AT_MATURITY` only on/after the account's maturity date; `NONE` never.
+  `AT_MATURITY` only on/after the account's maturity date; `NONE` never. Never for a future
+  business date; the entry's `value_date` is the run date.
+- A run during the day uses the intra-day balance for *today* — run EoD after the day is
+  closed (OD-45).
 - Runs per account in its own DB transaction with a **deterministic business-transaction id**
   (UUIDv5 of tenant, account, date, kind), so re-running a date is a no-op
   (`run_eod_steps` command, `POST /api/v1/operations/eod`).
@@ -232,9 +253,11 @@ by a whitelist evaluator** — nothing is passed to `eval`/`exec`/`compile` for 
 | `and`, `or`, `not`, `x if cond else y` | Unknown variable names |
 | `min(...)`, `max(...)`, `abs(x)` (positional args) | |
 
-Bounds: ≤ 500 characters, ≤ 120 AST nodes. Numbers are `Decimal` built from the literal's
-**source text** (`0.1` is exactly 0.1 — a float never exists); arithmetic runs with 34-digit
-precision and traps division by zero/invalid operations. Type rules: arithmetic needs numbers;
+Bounds: ≤ 500 characters, ≤ 120 AST nodes; each numeric literal ≤ 24 significant digits with
+|exponent| ≤ 18 (compile time). Numbers are `Decimal` built from the literal's **source text**
+(`0.1` is exactly 0.1 — a float never exists); arithmetic runs with 34-digit precision in a
+context bounded to exponents ±30, and **every** decimal signal (division by zero, invalid
+operation, overflow, …) becomes a typed `ExpressionError` — never a crash. Type rules: arithmetic needs numbers;
 logical operators need booleans; comparisons need same-typed operands; strings and booleans
 support only `==`/`!=`. Conditions must yield a boolean, formulas a number.
 
@@ -253,6 +276,10 @@ support only `==`/`!=`. Conditions must yield a boolean, formulas a number.
 | `param_<name>` | Every declared parameter (override applied; money in major units) |
 
 Example: `kyc_level >= 1 or book_balance + amount <= param_tier0_max_balance`.
+
+**Runtime failures** (an approved formula that overflows or fails to evaluate) surface as
+`422 PRODUCT_RULE_VIOLATION` naming only the rule/fee code; the expression source and the
+underlying error are logged server-side and **never** echoed to API clients.
 
 ## How a product meets the ledger
 

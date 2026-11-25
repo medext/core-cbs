@@ -18,6 +18,7 @@ from rest_framework.response import Response
 from next_core.accounts.application import get_account
 from next_core.iam.permissions import (
     HOLDS_MANAGE,
+    LOANS_DISBURSE,
     OPERATIONS_RUN,
     TRANSACTIONS_POST,
     TRANSACTIONS_READ,
@@ -289,7 +290,7 @@ class TransferView(DataPlaneView):
 
 
 class DisbursementView(DataPlaneView):
-    method_permissions = {"POST": TRANSACTIONS_POST}
+    method_permissions = {"POST": LOANS_DISBURSE}
 
     @_schema("Disburse a loan into a deposit account", DisbursementSerializer, LOAN_TAG)
     def post(self, request: Request, account_id: UUID) -> Response:
@@ -577,6 +578,7 @@ class EodView(DataPlaneView):
         body: dict[str, Any] = {
             "business_date": on.isoformat(),
             "holds_expired": expired,
+            "hold_reconciliation_findings": svc.reconcile_holds(),
             "interest": {
                 "accounts_considered": summary.accounts_considered,
                 "accrued": summary.accrued,

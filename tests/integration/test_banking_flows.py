@@ -1,6 +1,7 @@
 """Business flows through the application services on real PostgreSQL."""
 
 from collections.abc import Callable
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -18,8 +19,10 @@ from next_core.platform.errors import (
     InsufficientFundsError,
     KycLevelInsufficientError,
     LimitExceededError,
+    MakerCheckerViolationError,
     OperationNotAllowedError,
     ProductRuleViolationError,
+    ValidationFailedError,
 )
 from next_core.platform.money import Money
 from next_core.tenancy.context import TenantContext
@@ -75,7 +78,7 @@ def test_current_account_full_cycle(alpha: TenantContext) -> None:
     assert book(a) == "612.16" and avail(a) == "612.16"
 
     # reversal restores the economic position (principal + fees)
-    rev = atomic(txns.reverse, t.id, "customer dispute", f.TELLER)
+    rev = atomic(txns.reverse, t.id, "customer dispute", f.SUPERVISOR)
     assert rev.state == TxnState.POSTED
     assert book(a) == "816.80"  # 612.16 + 200.00 + 4.64 fees
     assert verify_ledger().ok
@@ -100,7 +103,9 @@ def test_daily_limit(alpha: TenantContext) -> None:
         atomic(txns.withdrawal, a.id, f.money("1000.01", "EUR"), C(), f.TELLER)
 
 
-def test_term_deposit_rules_and_interest(alpha: TenantContext) -> None:
+def test_term_deposit_rules_and_interest(
+    alpha: TenantContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
     products = f.bootstrap()
     td = f.account(products, "TERM_DEPOSIT", overrides={"term_days": 30})
     with pytest.raises(ProductRuleViolationError):  # below min opening 20000.00 MRU
@@ -111,14 +116,24 @@ def test_term_deposit_rules_and_interest(alpha: TenantContext) -> None:
     with pytest.raises(ProductRuleViolationError):  # locked until maturity
         atomic(txns.withdrawal, td.id, f.money("1.00"), C(), f.TELLER)
     today = clock.business_date()
-    assert txns.accrue_interest_for(td.id, today, f.TELLER)  # 36500 * 5% / 365 = 5.00
-    assert not txns.accrue_interest_for(td.id, today, f.TELLER)  # idempotent
+    assert txns.accrue_interest_for(td.id, today, f.TELLER) == 1  # 36500 * 5% / 365 = 5.00
+    assert txns.accrue_interest_for(td.id, today, f.TELLER) == 0  # idempotent
     assert td.interest_balance_id is not None and td.maturity_date is not None
     accrued = ledger.get_balance(td.interest_balance_id)
     assert accrued.book_balance == 500
     maturity = td.maturity_date
+    with pytest.raises(ValidationFailedError):  # ledger review B1: never for a future date
+        txns.capitalize_interest_for(td.id, maturity, f.TELLER)
+    with pytest.raises(ValidationFailedError):
+        txns.accrue_interest_for(td.id, today + timedelta(days=1), f.TELLER)
+    # Time travel to maturity: catch-up accrues each remaining day once, on the value-dated
+    # balance, and stops the day before maturity; then capitalization at maturity.
+    monkeypatch.setattr(clock, "business_date", lambda: maturity)
+    assert txns.accrue_interest_for(td.id, maturity, f.TELLER) == 29
+    assert ledger.get_balance(td.interest_balance_id).book_balance == 500 * 30
     assert txns.capitalize_interest_for(td.id, maturity, f.TELLER)
-    assert book(td) == "36505.00"
+    assert book(td) == "36650.00"
+    assert txns.accrue_interest_for(td.id, maturity, f.TELLER) == 0
     assert verify_ledger().ok
 
 
@@ -155,7 +170,7 @@ def test_loan_disbursement_repayment_and_interest(alpha: TenantContext) -> None:
         atomic(txns.repay, cur.id, loan.id, f.money("10100.01"), C(channel="BRANCH"), f.TELLER)
     atomic(txns.repay, cur.id, loan.id, f.money("100.00"), C(channel="BRANCH"), f.TELLER)
     assert book(loan) == "10000.00"
-    assert txns.accrue_interest_for(loan.id, clock.business_date(), f.TELLER)
+    assert txns.accrue_interest_for(loan.id, clock.business_date(), f.TELLER) == 1
     # 10000.00 * 12% / 360 = 3.33 (half-even)
     assert loan.interest_balance_id is not None
     assert ledger.get_balance(loan.interest_balance_id).book_balance == 333
@@ -187,3 +202,40 @@ def test_frozen_and_debit_block(alpha: TenantContext) -> None:
     accounts.change_status(a.id, "FROZEN", "investigation", f.TELLER)
     with pytest.raises(AccountStateInvalidError):
         f.deposit(a, "1.00")
+
+
+def test_initiator_cannot_reverse_own_transaction(alpha: TenantContext) -> None:
+    products = f.bootstrap()
+    a, b = f.account(products), f.account(products)
+    f.deposit(a, "50.00")
+    t = atomic(txns.transfer, a.id, b.id, f.money("10.00"), C(channel="BRANCH"), f.TELLER)
+    with pytest.raises(MakerCheckerViolationError):
+        atomic(txns.reverse, t.id, "self-reversal", f.TELLER)
+
+
+def test_backdated_accrual_uses_value_dated_balance(
+    alpha: TenantContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    products = f.bootstrap()
+    s = f.account(products, "SAVINGS")
+    opened = clock.business_date()
+    f.deposit(s, "36500.00")
+    later = opened + timedelta(days=3)
+    monkeypatch.setattr(clock, "business_date", lambda: later)
+    f.deposit(s, "36500.00")  # value-dated `later`: must not inflate days 0..2
+    assert txns.accrue_interest_for(s.id, later, f.TELLER) == 4
+    assert s.interest_balance_id is not None
+    # 3 days x 3.00 on 36500 + 1 day x 6.00 on 73000
+    assert ledger.get_balance(s.interest_balance_id).book_balance == 3 * 300 + 600
+    assert verify_ledger().ok
+
+
+def test_holds_reconcile_with_projection(alpha: TenantContext) -> None:
+    products = f.bootstrap()
+    a, b = f.account(products), f.account(products)
+    f.deposit(a, "100.00")
+    h1 = atomic(txns.place_hold, a.id, f.money("10.00"), 3600, C(), f.TELLER)
+    atomic(txns.place_hold, a.id, f.money("20.00"), 3600, C(), f.TELLER)
+    atomic(txns.capture_hold, h1.hold.id, f.money("5.00"), b.id, f.TELLER)
+    assert txns.reconcile_holds() == []
+    assert ledger.get_balance(a.principal_balance_id).held_amount == 2000

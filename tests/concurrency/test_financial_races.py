@@ -1,6 +1,7 @@
 """Hostile concurrency suite (docs/architecture/idempotency-concurrency.md) on real
 PostgreSQL. Postcondition everywhere: money conservation + reconstruction == projection."""
 
+import json
 from collections.abc import Callable, Iterator
 from typing import Any
 
@@ -156,7 +157,7 @@ def test_concurrent_reversals_of_one_transaction(ctx: TenantContext) -> None:
     f.deposit(src, "100.00")
     with transaction.atomic(using="tenant_alpha"):
         t = txns.transfer(src.id, dst.id, Money(4_000, "MRU"), BRANCH, f.TELLER)
-    results = run_parallel(ctx, [atomic(lambda: txns.reverse(t.id, "dup", f.TELLER))] * 6)
+    results = run_parallel(ctx, [atomic(lambda: txns.reverse(t.id, "dup", f.SUPERVISOR))] * 6)
     assert sum(isinstance(r, BusinessTransaction) for r in results) == 1, results
     assert all(isinstance(r, BusinessTransaction | ConflictStateError) for r in results)
     assert JournalEntry.objects.exclude(reversal_of=None).count() == 1
@@ -209,3 +210,99 @@ def test_closure_vs_incoming_deposit(ctx: TenantContext) -> None:
         assert book(acc) == 0
     assert all(isinstance(r, Account | BusinessTransaction | DomainError) for r in results)
     _assert_integrity()
+
+
+def test_simultaneous_holds_never_exceed_available(ctx: TenantContext) -> None:
+    products = f.bootstrap()
+    acc = f.account(products)
+    f.deposit(acc, "100.00")
+    results = run_parallel(
+        ctx,
+        [atomic(lambda: txns.place_hold(acc.id, Money(3_000, "MRU"), 3600, BRANCH, f.TELLER))] * 8,
+    )
+    assert sum(isinstance(r, BusinessTransaction) for r in results) == 3, results
+    assert held(acc) == 9_000 and txns.reconcile_holds() == []
+    _assert_integrity()
+
+
+def test_expiry_sweep_vs_capture(ctx: TenantContext, monkeypatch: pytest.MonkeyPatch) -> None:
+    from datetime import timedelta
+
+    from next_core.platform import clock
+
+    products = f.bootstrap()
+    src, dst = f.account(products), f.account(products)
+    f.deposit(src, "100.00")
+    with transaction.atomic(using="tenant_alpha"):
+        hold_txn = txns.place_hold(src.id, Money(5_000, "MRU"), 60, BRANCH, f.TELLER)
+    hold_id = hold_txn.hold.id
+    real_now = clock.now
+    monkeypatch.setattr(clock, "now", lambda: real_now() + timedelta(seconds=120))
+    results = run_parallel(
+        ctx,
+        [
+            lambda: txns.expire_holds(f.TELLER),
+            atomic(lambda: txns.capture_hold(hold_id, None, dst.id, f.TELLER)),
+        ],
+    )
+    # Expired by the clock: capture must refuse; the sweep converts the hold exactly once.
+    assert isinstance(results[1], ConflictStateError), results
+    assert held(src) == 0 and book(src) == 10_000 and book(dst) == 0
+    _assert_integrity()
+
+
+def test_deadlock_is_retried_transparently(ctx: TenantContext) -> None:
+    """Force a real PostgreSQL deadlock inside two idempotent executions (opposite lock
+    order + barrier); the loser must be retried by execute_idempotent and both succeed."""
+    import threading
+
+    from next_core.accounts.models import Account as AccountModel
+
+    products = f.bootstrap()
+    a, b = f.account(products), f.account(products)
+    f.deposit(a, "100.00")
+    f.deposit(b, "100.00")
+    barrier = threading.Barrier(2)
+    first_attempt = {"ab": True, "ba": True}
+
+    def work(order: str, first: Account, second: Account) -> Callable[[], Any]:
+        def run() -> BusinessTransaction:
+            AccountModel.objects.select_for_update().get(id=first.id)
+            if first_attempt[order]:
+                first_attempt[order] = False
+                barrier.wait(timeout=30)
+            AccountModel.objects.select_for_update().get(id=second.id)
+            return txns.transfer(first.id, second.id, Money(100, "MRU"), BRANCH, f.TELLER)
+
+        return run
+
+    def call(order: str, first: Account, second: Account) -> Callable[[], Any]:
+        return lambda: txns.execute_idempotent(
+            txns.Idempotency("transfer", "c", order),
+            {"o": order},
+            work(order, first, second),
+            lambda exc: None,
+        )
+
+    results = run_parallel(ctx, [call("ab", a, b), call("ba", b, a)])
+    assert all(isinstance(r, txns.Outcome) and r.status == 201 for r in results), results
+    assert book(a) == book(b) == 10_000
+    _assert_integrity()
+
+
+def test_duplicate_requests_replay_identical_status_and_body(ctx: TenantContext) -> None:
+    products = f.bootstrap()
+    acc = f.account(products)
+    idem = txns.Idempotency("deposit", "client-9", "dup-body")
+
+    def call() -> txns.Outcome:
+        return txns.execute_idempotent(
+            idem,
+            {"a": 1},
+            lambda: txns.deposit(acc.id, Money(500, "MRU"), BRANCH, f.TELLER),
+            lambda exc: None,
+        )
+
+    results = run_parallel(ctx, [call] * 6)
+    assert len({(r.status, json.dumps(r.body, sort_keys=True)) for r in results}) == 1
+    assert book(acc) == 500
