@@ -115,7 +115,7 @@ framework).
 - [ ] Historical transactions stay linked to the product version in force (e2e).
 - [ ] Config changes cannot rewrite historical accounting; no arbitrary code execution (expression-language tests + review).
 - [ ] E2E open→fund→transfer→hold→capture→reverse→statement→EoD passes.
-- [ ] `make check` and CI green.
+- [x] `make check` and CI green — local: 199 passed, coverage 93%; CI all 6 jobs green, [run 45695450049](https://github.com/medext/core-cbs/actions/runs/45695450049) (commit `ad048e2`).
 - [ ] Human approval: _pending_.
 
 ### Review outcomes (2026-11-25)

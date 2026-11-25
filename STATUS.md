@@ -34,8 +34,10 @@
 
 **Next step for a fresh session:** do not start Phase 7. Present the combined gate
 (roadmap → "MVP track") to the human; on approval, work M.9 items in the order listed.
-CI evidence for the MVP track: check the GitHub Actions run for the latest commit on this
-branch (not yet inspected in-session).
+CI evidence for the MVP track: **all 6 jobs green** — run
+<https://github.com/medext/core-cbs/actions/runs/45695450049> (commit `ad048e2`). Earlier runs
+on this branch caught three real defects: Bandit (control-flow asserts), the on-prem
+single-database migration defect, and pip-audit advisories on pinned dependencies.
 
 ## Phase 2 slice backlog (execute in order)
 
