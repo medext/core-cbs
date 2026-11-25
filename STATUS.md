@@ -5,21 +5,37 @@
 > work it describes (same-change rule). If you are Claude Code starting a fresh session:
 > read this file first, then `CLAUDE.md`, then follow "How to resume" below.
 
-**Last updated:** 2026-11-25 (WIP checkpoint) · **Branch:** `claude/core-banking-system-mvp-1ryv2t`
-
-> **WIP:** MVP track (compressed Phases 3–6, authorized 2026-11-25) in progress — ledger,
-> parties, product engine, accounts, transactions, fees, limits, interest and API v1 are
-> implemented and tested; docs, extra test suites and reviews still running. See final
-> update in the next commit.
+**Last updated:** 2026-11-25 (MVP track delivered) · **Branch:** `claude/core-banking-system-mvp-1ryv2t`
 
 ## Where the project stands
 
 | Phase | Status |
 |---|---|
 | 0 — Architecture blueprint | ✅ Approved 2026-07-18 (ADRs 0001–0008 Accepted) |
-| 1 — Repository & engineering foundation | ✅ Approved 2026-07-18 (CI run #3 green; ADR-0009 Celery Accepted) |
-| **2 — Tenancy, IAM & audit foundation** | 🔨 **IN PROGRESS** (started 2026-07-18) |
-| 3–10 | Not started (see `docs/product/roadmap.md`) |
+| 1 — Repository & engineering foundation | ✅ Approved 2026-07-18 (ADR-0009 Celery Accepted) |
+| 2 — Tenancy, IAM & audit foundation | ✅ Approved 2026-11-25 by mohamed@next.mr (with authorization of the compressed MVP track) |
+| **3–6 — MVP track (compressed: ledger, parties/products/accounts, transfers/holds/fees/limits, product configurability)** | 🟡 **Built & reviewed — awaiting human gate approval** (OD-37) |
+| 7–10 | Not started (pre-built pieces: interest accrual/capitalization, hold expiry, EoD steps — see roadmap) |
+
+## MVP track backlog (compressed Phases 3–6, authorized 2026-11-25)
+
+| # | Slice | Status |
+|---|---|---|
+| M.0 | Record Phase 2 approval + MVP-track authorization; OD-1 confirmed (MRU/XOF/EUR/USD) | ✅ done |
+| M.1 | `platform`: Money/Currency (ADR-0004), RFC 9457 error taxonomy + DRF handler (OD-27), clock, tenant-scoped/append-only persistence, transactional outbox app + relay (ADR-0007) | ✅ done |
+| M.2 | `ledger` kernel: CoA, balances, entries, postings, posting service, reversals, holds projection, integrity/reconstruction, trial balance, statement; DB triggers (balanced, append-only, writer session, funds floor, born-empty, txid guard) | ✅ done |
+| M.3 | `parties`, `products` (declarative engine, restricted expressions, versioning, maker-checker, simulation, seed catalog), `accounts` (lifecycle, blocks, closure, mod-97 numbers) | ✅ done |
+| M.4 | `transactions` (idempotent orchestration, state machine, deposits/withdrawals/transfers/holds/loans/reversals, interest), `pricing`, `limits` | ✅ done |
+| M.5 | API v1 (43 routes) + OpenAPI 3.1 committed (`make openapi`, drift contract test) | ✅ done |
+| M.6 | Test suites: unit, property (Hypothesis), integration, concurrency (13 hostile races), contract (catalog, OpenAPI, golden dependency rules), e2e (incl. all-routes cross-tenant walk) — **198 passed, coverage 93%, `make check` ALL GATES PASSED** | ✅ done |
+| M.7 | Reviews: ledger (BLOCK → lifted), concurrency, security — all **APPROVE-WITH-CONDITIONS after re-verification**; documentation review — see roadmap | ✅ done (conditions → OD-40, 42, 46–49) |
+| M.8 | **Human gate decision on the combined Phase 3–6 gate** (`docs/product/roadmap.md` → MVP track) + ADR-0010 acceptance | ⬜ **NEXT — stop-point** |
+| M.9 | Close gate conditions: DB-role separation & table-truncation protection (OD-14/OD-40), `api_client` scoping (OD-42), kill-worker & ambiguous-response tests (OD-46), ledger Hypothesis suites for fees/holds (OD-47), route-walk depth (OD-48) | ⬜ after M.8 |
+
+**Next step for a fresh session:** do not start Phase 7. Present the combined gate
+(roadmap → "MVP track") to the human; on approval, work M.9 items in the order listed.
+CI evidence for the MVP track: check the GitHub Actions run for the latest commit on this
+branch (not yet inspected in-session).
 
 ## Phase 2 slice backlog (execute in order)
 
@@ -73,6 +89,15 @@ README copy and the RedisCache backend defects.
    same change**, and push to the branch above.
 
 ## Session notes / handoff context
+
+- **Quick demo:** `make test-db-start`; `uv sync`; local profile: `migrate`, register a
+  tenant in the control plane, `migrate_tenants`, `bootstrap_tenant --tenant <slug>`,
+  `runserver` — verified in-session (schema 200, data plane 401 without token, 400 without
+  tenant). The README quickstart curl walkthrough has **not** been executed end-to-end.
+- **Test isolation quirk:** concurrent pytest runs (e.g. reviewer subagents) share the
+  `test_next_core_*` databases and break each other — run one suite at a time.
+- **Hook quirk:** `.claude/hooks/guard-destructive.sh` blocks any Bash command containing the
+  SQL truncation keyword followed by a space, even inside doc text — write such edits via files.
 
 - **Environment quirk:** the remote dev container has uv 0.8.17, local PostgreSQL 16.13 and
   Redis 7 binaries, but **no Docker daemon** — validate `compose.yaml` with

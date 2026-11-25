@@ -239,3 +239,28 @@ def test_holds_reconcile_with_projection(alpha: TenantContext) -> None:
     atomic(txns.capture_hold, h1.hold.id, f.money("5.00"), b.id, f.TELLER)
     assert txns.reconcile_holds() == []
     assert ledger.get_balance(a.principal_balance_id).held_amount == 2000
+
+
+def test_monthly_capitalization_catches_up_in_order_and_never_early(
+    alpha: TenantContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ledger review condition 1: missed 1sts are caught up in order; each capitalization
+    only moves interest accrued with value_date < the capitalization date."""
+    from datetime import date
+
+    products = f.bootstrap()
+    monkeypatch.setattr(clock, "business_date", lambda: date(2026, 11, 25))
+    s = f.account(products, "SAVINGS")
+    f.deposit(s, "36500.00")
+    monkeypatch.setattr(clock, "business_date", lambda: date(2027, 1, 15))
+    assert txns.capitalize_interest_for(s.id, date(2027, 1, 15), f.TELLER) == 0  # accrue first
+    # Accrual catch-up applies the due capitalizations (12-01, 01-01) in date order.
+    assert txns.accrue_interest_for(s.id, date(2027, 1, 15), f.TELLER) == 52
+    # 12-01: 6 days (11-25..11-30) x 3.00; 01-01: 31 days x 3.00 on 36518.00 (3.0015 → 3.00)
+    assert book(s) == "36611.00"
+    assert txns.capitalize_interest_for(s.id, date(2027, 1, 15), f.TELLER) == 0  # resumable
+    assert s.interest_balance_id is not None
+    # 14 days of January (01-01..01-14 on 36611.00 → 3.01) + 01-15 remain accrued, unpaid
+    remaining = ledger.get_balance(s.interest_balance_id).book_balance
+    assert remaining == 15 * 301  # compounding: January accrues on 36611.00
+    assert verify_ledger().ok

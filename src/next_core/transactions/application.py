@@ -1091,47 +1091,54 @@ def accrue_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> int:
                     f"Accrual is {(end - day).days + 1} days behind; catch up in ≤ "
                     f"{MAX_CATCH_UP_DAYS}-day runs."
                 )
+            # Capitalizations due on/before this day go first (compounding is applied in
+            # date order even during a catch-up).
+            for due in _capitalization_dates(snap, account.interest_capitalized_through, day):
+                _capitalize_one(snap, due, actor)
             posted += int(_accrue_day(snap, day, actor))
             accounts.mark_interest_accrued(account, day)
     return posted  # pragma: no cover - bounded by the catch-up guard
 
 
-def capitalize_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> bool:
-    """Move the accrued figure into principal per the product's capitalization policy
-    (MONTHLY: on the 1st; AT_MATURITY: on/after maturity). Never for a future date."""
-    _check_not_future(on)
-    txn_id = _system_txn_id(account_id, on, "CAPITALIZATION")
-    with transaction.atomic(using=_alias()):
-        snap = accounts.lock_for_operation([account_id])[account_id]
-        defn = snap.definition
-        if (
-            BusinessTransaction.objects.filter(id=txn_id).exists()
-            or snap.account.status == "CLOSED"
-            or defn.interest is None
-            or snap.account.interest_balance_id is None
-            or defn.interest.capitalization == Capitalization.NONE
-        ):
-            return False
-        if defn.interest.capitalization == Capitalization.MONTHLY and on.day != 1:
-            return False
-        if defn.interest.capitalization == Capitalization.AT_MATURITY and (
-            snap.account.maturity_date is None or on < snap.account.maturity_date
-        ):
-            return False
-        accrued_bal = ledger.get_balance(snap.account.interest_balance_id)
-        if accrued_bal.book_balance <= 0:
-            return False
+def _capitalization_dates(snap: AccountSnapshot, after: date | None, on: date) -> list[date]:
+    """Due capitalization dates in (after, on], in order (catch-up of missed dates)."""
+    defn, account = snap.definition, snap.account
+    assert defn.interest is not None
+    if defn.interest.capitalization == Capitalization.AT_MATURITY:
+        due = account.maturity_date
+        return [due] if due is not None and due <= on and (after is None or due > after) else []
+    if defn.interest.capitalization != Capitalization.MONTHLY:
+        return []
+    first = after or account.opened_on
+    d = date(first.year + (first.month == 12), first.month % 12 + 1, 1)
+    out: list[date] = []
+    while d <= on:
+        out.append(d)
+        d = date(d.year + (d.month == 12), d.month % 12 + 1, 1)
+    return out
+
+
+def _capitalize_one(snap: AccountSnapshot, d: date, actor: Actor) -> bool:
+    """Capitalize the accrued figure with value_date < d (caller holds the account lock and
+    has checked accrual ran through d - 1). Advances the checkpoint to d."""
+    account = snap.account
+    assert account.interest_balance_id is not None
+    posted = False
+    amount_minor = ledger.book_balance_as_of(account.interest_balance_id, d - timedelta(days=1))
+    txn_id = _system_txn_id(account.id, d, "CAPITALIZATION")
+    if amount_minor > 0 and not BusinessTransaction.objects.filter(id=txn_id).exists():
+        accrued_bal = ledger.get_balance(account.interest_balance_id)
         principal = ledger.get_balance(snap.principal_balance_id)
-        amount = Money(accrued_bal.book_balance, accrued_bal.currency)
+        amount = Money(amount_minor, accrued_bal.currency)
         txn = _new_txn(
             txn_id=txn_id,
             type=TxnType.INTEREST_CAPITALIZATION,
             amount=amount,
             actor=actor,
-            credit_account_id=account_id,
+            credit_account_id=account.id,
             channel="SYSTEM",
-            narrative=f"Interest capitalization {on.isoformat()}",
-            value_date=on,
+            narrative=f"Interest capitalization {d.isoformat()}",
+            value_date=d,
         )
         lines = (_decrease_line(accrued_bal, amount), _increase_line(principal, amount))
         _pin_versions(txn, snap)
@@ -1140,12 +1147,44 @@ def capitalize_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> bo
             txn,
             [
                 EntrySpec(
-                    "CAPITALIZATION", lines, description="Interest capitalization", value_date=on
+                    "CAPITALIZATION", lines, description="Interest capitalization", value_date=d
                 )
             ],
         )
         _transition(txn, TxnState.POSTED, actor)
-        return True
+        posted = True
+    accounts.mark_interest_capitalized(account, d)
+    return posted
+
+
+def capitalize_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> int:
+    """Capitalize per policy for every due date up to ``on``, in order (MONTHLY: each 1st;
+    AT_MATURITY: the maturity date). Resumable (``interest_capitalized_through`` checkpoint)
+    and never early: the amount for date d is the accrued figure with value_date < d, and d
+    is processed only once accrual has run through d - 1 (ledger review condition 1).
+    One DB transaction per due date. Returns the number of capitalizations posted."""
+    _check_not_future(on)
+    posted = 0
+    while True:
+        with transaction.atomic(using=_alias()):
+            snap = accounts.lock_for_operation([account_id])[account_id]
+            account, defn = snap.account, snap.definition
+            if (
+                account.status == "CLOSED"
+                or defn.interest is None
+                or account.interest_balance_id is None
+            ):
+                return posted
+            due = _capitalization_dates(snap, account.interest_capitalized_through, on)
+            if not due:
+                return posted
+            d = due[0]
+            accrued_through = account.interest_accrued_through
+            needed = d - timedelta(days=1)
+            matured = account.maturity_date is not None and d >= account.maturity_date
+            if not matured and (accrued_through is None or accrued_through < needed):
+                return posted  # accrue first; capitalization waits (never early)
+            posted += int(_capitalize_one(snap, d, actor))
 
 
 def run_interest(on: date, actor: Actor) -> InterestRunSummary:
@@ -1157,7 +1196,7 @@ def run_interest(on: date, actor: Actor) -> InterestRunSummary:
     accrued = capitalized = 0
     for account_id in ids:
         accrued += accrue_interest_for(account_id, on, actor)
-        capitalized += int(capitalize_interest_for(account_id, on, actor))
+        capitalized += capitalize_interest_for(account_id, on, actor)
     return InterestRunSummary(on, len(ids), accrued, capitalized, 0)
 
 

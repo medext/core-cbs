@@ -109,7 +109,8 @@ framework).
 - [ ] All 25 invariants: evidence table in [invariants](../accounting/invariants.md#evidence-mvp-track-2026-11-25) — 22 and 10 partial, period checks deferred.
 - [ ] Property suites pass (balance, reversal symmetry, idempotency, reconstruction, money, fees).
 - [ ] Hostile concurrency suite passes on real PostgreSQL.
-- [ ] `ledger-accounting-reviewer`, `postgres-concurrency-reviewer`, `security-reviewer` verdicts received and findings fixed (see *Review outcomes*); re-verification by the reviewers and the `documentation-reviewer` verdict: pending.
+- [x] `ledger-accounting-reviewer`, `postgres-concurrency-reviewer`, `security-reviewer`: findings fixed and **re-verified** — all three APPROVE-WITH-CONDITIONS (see *Review outcomes*); open conditions are registered gate items below.
+- [ ] Open reviewer conditions closed or explicitly accepted by the human: OD-40 (TRUNCATE protection / DB-role separation; invariant 24 DB layer Partial), OD-42 (`api_client` scoping), OD-46 (deferred concurrency tests), OD-47 (ledger-level Hypothesis suites for fee entries & holds), OD-48 (route-walk depth).
 - [ ] No API path mutates a balance directly (contract test + review).
 - [ ] Historical transactions stay linked to the product version in force (e2e).
 - [ ] Config changes cannot rewrite historical accounting; no arbitrary code execution (expression-language tests + review).
@@ -117,10 +118,15 @@ framework).
 - [ ] `make check` and CI green.
 - [ ] Human approval: _pending_.
 
-### Review outcomes (first pass, 2026-11-25)
+### Review outcomes (2026-11-25)
 
-The fixes below are implemented with regression tests; **the reviewers have not yet
-re-verified them**.
+**Re-verification (second pass):** ledger-accounting-reviewer **BLOCK lifted ->
+APPROVE-WITH-CONDITIONS** (follow-ups fixed: resumable, never-early capitalization with
+in-order catch-up; `created_txid` forced by trigger; retryable errors no longer burn
+idempotency keys); postgres-concurrency-reviewer **APPROVE-WITH-CONDITIONS** (N1 retryable
+errors stored as final -> fixed; N2 per-day accrual commits -> fixed); security-reviewer
+**APPROVE-WITH-CONDITIONS** (deep-JSON 500 -> fixed; residuals OD-42, OD-43, OD-48).
+Remaining open conditions are listed in the combined gate above. First-pass findings:
 
 | Reviewer | Verdict | Findings → status |
 |---|---|---|

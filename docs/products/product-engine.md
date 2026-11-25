@@ -207,10 +207,15 @@ purpose `ACCRUED_INTEREST` mapped to `accrued_interest`.
 - **Ledger legs**: the accrued balance grows on its normal side; the P&L counterpart takes the
   other side — LIABILITY: DR `interest_expense` / CR accrued interest payable; ASSET:
   DR accrued interest receivable / CR `interest_income`.
-- **Capitalization** moves the full accrued book balance into principal (decrease accrued,
-  increase principal): `MONTHLY` runs only when the run date is the 1st of a month;
-  `AT_MATURITY` only on/after the account's maturity date; `NONE` never. Never for a future
-  business date; the entry's `value_date` is the run date.
+- **Capitalization** moves accrued interest into principal (decrease accrued, increase
+  principal) on each **due date**: `MONTHLY` = every 1st of a month after opening;
+  `AT_MATURITY` = the maturity date; `NONE` never. For due date *d* the amount is the
+  accrued figure with `value_date < d` (never early), *d* is processed only once accrual has
+  run through *d - 1*, and the entry's `value_date` is *d*. A per-account checkpoint
+  (`interest_capitalized_through`) makes it resumable: missed due dates are caught up **in
+  order**, and during an accrual catch-up the due capitalizations are applied in date order
+  before the next day accrues (compounding is never skipped). Never for a future business
+  date. Evidence: `test_monthly_capitalization_catches_up_in_order_and_never_early`.
 - A run during the day uses the intra-day balance for *today* — run EoD after the day is
   closed (OD-45).
 - Runs per account in its own DB transaction with a **deterministic business-transaction id**

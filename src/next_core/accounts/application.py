@@ -241,6 +241,15 @@ def mark_interest_accrued(account: Account, through: date) -> None:
     account.save(update_fields=["interest_accrued_through", "updated_at"])
 
 
+def mark_interest_capitalized(account: Account, through: date) -> None:
+    """Advance the capitalization checkpoint (caller holds the account lock)."""
+    current = account.interest_capitalized_through
+    if current is not None and through <= current:
+        raise ConflictStateError("The capitalization checkpoint must move forward.")
+    account.interest_capitalized_through = through
+    account.save(update_fields=["interest_capitalized_through", "updated_at"])
+
+
 def ensure_operable(snap: AccountSnapshot, *, debit: bool) -> None:
     a = snap.account
     if a.status != AccountStatus.ACTIVE:
