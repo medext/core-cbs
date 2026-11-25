@@ -96,7 +96,7 @@ CACHES = {
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
-    "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
+    "DEFAULT_PARSER_CLASSES": ["next_core.platform.api.BoundedJSONParser"],
     # Deny by default; endpoints opt in explicitly (health endpoints are plain Django views).
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAdminUser"],
     "DEFAULT_PAGINATION_CLASS": "next_core.platform.api.BoundedPageNumberPagination",

@@ -4,7 +4,9 @@ idempotent-outcome rendering. No business policy."""
 from typing import Any
 
 from rest_framework import serializers
+from rest_framework.exceptions import ParseError
 from rest_framework.pagination import CursorPagination, PageNumberPagination
+from rest_framework.parsers import JSONParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -96,3 +98,13 @@ PROBLEM: dict[str, Any] = {
     },
     "required": ["type", "title", "status", "code", "detail", "retryable", "correlation_id"],
 }
+
+
+class BoundedJSONParser(JSONParser):
+    """JSON parser whose pathological nesting becomes a 400, never a 500 (review M2)."""
+
+    def parse(self, stream: Any, media_type: Any = None, parser_context: Any = None) -> Any:
+        try:
+            return super().parse(stream, media_type, parser_context)
+        except RecursionError as exc:
+            raise ParseError("JSON nesting is too deep.") from exc

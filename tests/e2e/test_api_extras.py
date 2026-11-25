@@ -198,4 +198,13 @@ def test_error_shapes(seeded: dict[str, Tenant], token_factory: TokenFactory) ->
         "/api/v1/transactions/deposits", {"account_id": "x", "amount": "1.001", "currency": "EUR"}
     )
     assert st == 400 and {e["field"] for e in body["errors"]} >= {"account_id"}
+    deep = "[" * 100_000 + "]" * 100_000
+    r = teller.client.generic(
+        "POST",
+        "/api/v1/parties",
+        deep,
+        content_type="application/json",
+        headers=teller._headers(None),
+    )
+    assert r.status_code == 400
     assert teller.client.delete("/api/v1/parties", headers=teller._headers(None)).status_code == 405
