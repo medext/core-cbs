@@ -122,6 +122,10 @@ def test_term_deposit_rules_and_interest(
     accrued = ledger.get_balance(td.interest_balance_id)
     assert accrued.book_balance == 500
     maturity = td.maturity_date
+    monkeypatch.setattr(clock, "business_date", lambda: maturity)
+    # At maturity, capitalization waits until accrual has run through maturity - 1 (never partial)
+    assert txns.capitalize_interest_for(td.id, maturity, f.TELLER) == 0
+    monkeypatch.setattr(clock, "business_date", lambda: today)
     with pytest.raises(ValidationFailedError):  # ledger review B1: never for a future date
         txns.capitalize_interest_for(td.id, maturity, f.TELLER)
     with pytest.raises(ValidationFailedError):

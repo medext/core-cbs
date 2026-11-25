@@ -48,6 +48,11 @@ class TenantDatabaseRouter:
     def allow_migrate(
         self, db: str, app_label: str, model_name: str | None = None, **hints: Any
     ) -> bool:
+        if getattr(settings, "NEXT_CORE_SINGLE_DATABASE", False):
+            # On-premise: 'default' and the tenant alias are the SAME physical database and
+            # share one django_migrations table — every app must be created by whichever
+            # alias migrates first, or tables would be recorded as applied but never built.
+            return True
         if app_label in data_plane_app_labels():
             return is_tenant_alias(db)
         return db == CONTROL_DB_ALIAS

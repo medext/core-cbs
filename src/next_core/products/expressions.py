@@ -211,7 +211,8 @@ class _Evaluator:
                 else self.visit(node.orelse)
             )
         if isinstance(node, ast.Call):
-            assert isinstance(node.func, ast.Name)
+            if not isinstance(node.func, ast.Name):  # pragma: no cover - compile-time guard
+                raise ExpressionError("Only named function calls are allowed.")
             args = [self._num(self.visit(a)) for a in node.args]
             if node.func.id == "abs":
                 if len(args) != 1:

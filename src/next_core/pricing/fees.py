@@ -48,10 +48,16 @@ def _net_exact(
 ) -> int:
     cur = amount.currency
     if calc.type == "FLAT":
-        assert calc.amount is not None
+        if calc.amount is None:
+            raise ProductRuleViolationError(
+                "Invalid fee configuration."
+            )  # unreachable after parsing
         return calc.amount[cur]
     if calc.type == "PERCENTAGE":
-        assert calc.rate is not None
+        if calc.rate is None:
+            raise ProductRuleViolationError(
+                "Invalid fee configuration."
+            )  # unreachable after parsing
         net = quantize_minor(Decimal(amount.amount_minor) * calc.rate, rounding)
         if calc.minimum is not None:
             net = max(net, calc.minimum[cur])
@@ -63,10 +69,14 @@ def _net_exact(
             if tier.up_to is None or amount.amount_minor <= tier.up_to[cur]:
                 if tier.flat is not None:
                     return tier.flat[cur]
-                assert tier.rate is not None
+                if tier.rate is None:
+                    raise ProductRuleViolationError(
+                        "Invalid fee configuration."
+                    )  # unreachable after parsing
                 return quantize_minor(Decimal(amount.amount_minor) * tier.rate, rounding)
         raise ProductRuleViolationError("No fee tier covers the amount.")  # pragma: no cover
-    assert calc.formula is not None
+    if calc.formula is None:
+        raise ProductRuleViolationError("Invalid fee configuration.")  # unreachable after parsing
     try:
         major = calc.formula.evaluate_decimal(env)
         return Money.from_major_decimal(major, cur, rounding).amount_minor

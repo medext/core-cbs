@@ -48,3 +48,38 @@ def test_onprem_refuses_to_boot_without_tenant_configuration() -> None:
     result = _boot("import django; django.setup()", env)
     assert result.returncode != 0
     assert "NEXT_CORE_TENANT_ID" in result.stderr
+
+
+def test_onprem_migrates_bootstraps_and_verifies_on_real_postgres() -> None:
+    """Regression (CI onprem-boot): with one physical database behind both aliases, the
+    data-plane tables must actually be created, then bootstrap + integrity must succeed."""
+    import psycopg
+
+    port = os.environ.get("TEST_DB_PORT", "5433")
+    base = os.environ.get("DATABASE_URL", f"postgres://nextcore@127.0.0.1:{port}/next_core_dev")
+    dbname = "next_core_onprem_regression"
+    with psycopg.connect(base, autocommit=True) as conn:
+        exists = conn.execute("SELECT 1 FROM pg_database WHERE datname = %s", [dbname]).fetchone()
+        if not exists:
+            conn.execute(f'CREATE DATABASE "{dbname}"')
+    env = {
+        **_ONPREM_ENV,
+        "DATABASE_URL": base.rsplit("/", 1)[0] + "/" + dbname,
+        "DJANGO_SECURE_SSL_REDIRECT": "false",
+    }
+    for args in (
+        ["migrate", "--noinput"],
+        ["migrate_tenants"],
+        ["bootstrap_tenant"],
+        ["bootstrap_tenant"],
+        ["verify_ledger"],
+    ):
+        result = subprocess.run(
+            [sys.executable, "manage.py", *args],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+        assert result.returncode == 0, (args, result.stderr[-2000:])
+    assert "-> OK" in result.stdout

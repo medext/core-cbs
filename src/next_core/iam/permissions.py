@@ -2,8 +2,8 @@
 
 Permissions are Next Core concepts; the IAM asserts identity and coarse roles only
 (ADR-0008). Every endpoint names its permission explicitly — "authenticated" is never
-sufficient. Role bundles below are seeds; institutions recompose them via configuration
-by configuration (maker-checker is enforced on product configuration — products context).
+sufficient. Role bundles below are seeds; institutions recompose them through
+configuration (maker-checker is enforced on product configuration — products context).
 """
 
 from typing import Any

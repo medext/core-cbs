@@ -23,6 +23,8 @@ NEXT_CORE_TENANT_DB_ALIAS = "tenant_main"
 # One physical database serves both aliases: Django internals via 'default',
 # data-plane models via 'tenant_main' (uniform router behavior across profiles).
 DATABASES["tenant_main"] = dict(DATABASES["default"])  # noqa: F405
+# Both aliases share one physical database (and one migration ledger): see the router.
+NEXT_CORE_SINGLE_DATABASE = True
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)

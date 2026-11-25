@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import random
+import secrets
 import time
 import uuid
 from collections.abc import Callable, Sequence
@@ -72,6 +72,7 @@ from next_core.transactions.models import (
 )
 
 SOURCE_TYPE = "TRANSACTION"
+_jitter = secrets.SystemRandom()  # retry jitter (not security-relevant; avoids B311)
 log = structlog.get_logger("next_core")
 _DEADLOCK_CODES = frozenset({"40P01", "40001"})
 _MAX_ATTEMPTS = 3
@@ -312,7 +313,8 @@ def execute_idempotent(
                         )
                     if existing.status == "PROCESSING":  # pragma: no cover - async paths only
                         raise RequestInProgressError("A request with this key is in progress.")
-                    assert existing.response_status is not None
+                    if existing.response_status is None:  # pragma: no cover - defensive
+                        raise RequestInProgressError("A request with this key is in progress.")
                     return Outcome(existing.response_status, existing.response_body or {}, True)
 
                 record_id = row[0]
@@ -350,7 +352,7 @@ def execute_idempotent(
                 structlog.get_logger("next_core").warning(
                     "transactions.retry_after_db_conflict", sqlstate=code, attempt=attempt
                 )
-                time.sleep(random.uniform(0.005, 0.05) * attempt)  # bounded, jittered backoff
+                time.sleep(_jitter.uniform(0.005, 0.05) * attempt)  # bounded, jittered backoff
                 continue
             raise
     raise AssertionError("unreachable")  # pragma: no cover
@@ -645,7 +647,8 @@ def _two_leg(
 
     if txn_type == TxnType.DISBURSEMENT:
         defn = src.definition
-        assert defn.credit_limit_parameter is not None
+        if defn.credit_limit_parameter is None:  # pragma: no cover - definition-validated
+            raise OperationNotAllowedError("Lending product without a credit limit.")
         limit = defn.money_param(defn.credit_limit_parameter, amount.currency, src.overrides)
         outstanding = ledger.get_balance(src.principal_balance_id).book_balance
         charged = amount.amount_minor + sum(f.total.amount_minor for f in src_fees)
@@ -995,7 +998,8 @@ def _check_not_future(on: date) -> None:
 def _accrue_day(snap: AccountSnapshot, day: date, actor: Actor) -> bool:
     """One day's accrual on the principal book balance *as of* ``day`` (value-dated)."""
     defn = snap.definition
-    assert defn.interest is not None and snap.account.interest_balance_id is not None
+    if defn.interest is None or snap.account.interest_balance_id is None:  # pragma: no cover
+        raise ConflictStateError("Account has no interest configuration.")
     txn_id = _system_txn_id(snap.id, day, "ACCRUAL")
     if BusinessTransaction.objects.filter(id=txn_id).exists():
         return False
@@ -1103,7 +1107,8 @@ def accrue_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> int:
 def _capitalization_dates(snap: AccountSnapshot, after: date | None, on: date) -> list[date]:
     """Due capitalization dates in (after, on], in order (catch-up of missed dates)."""
     defn, account = snap.definition, snap.account
-    assert defn.interest is not None
+    if defn.interest is None:  # pragma: no cover - caller checks
+        return []
     if defn.interest.capitalization == Capitalization.AT_MATURITY:
         due = account.maturity_date
         return [due] if due is not None and due <= on and (after is None or due > after) else []
@@ -1122,7 +1127,8 @@ def _capitalize_one(snap: AccountSnapshot, d: date, actor: Actor) -> bool:
     """Capitalize the accrued figure with value_date < d (caller holds the account lock and
     has checked accrual ran through d - 1). Advances the checkpoint to d."""
     account = snap.account
-    assert account.interest_balance_id is not None
+    if account.interest_balance_id is None:  # pragma: no cover - caller checks
+        return False
     posted = False
     amount_minor = ledger.book_balance_as_of(account.interest_balance_id, d - timedelta(days=1))
     txn_id = _system_txn_id(account.id, d, "CAPITALIZATION")
@@ -1181,9 +1187,12 @@ def capitalize_interest_for(account_id: uuid.UUID, on: date, actor: Actor) -> in
             d = due[0]
             accrued_through = account.interest_accrued_through
             needed = d - timedelta(days=1)
-            matured = account.maturity_date is not None and d >= account.maturity_date
-            if not matured and (accrued_through is None or accrued_through < needed):
-                return posted  # accrue first; capitalization waits (never early)
+            if account.maturity_date is not None and d >= account.maturity_date:
+                needed = account.maturity_date - timedelta(days=1)  # accrual stops there
+            if needed >= account.opened_on and (
+                accrued_through is None or accrued_through < needed
+            ):
+                return posted  # accrue first; capitalization waits (never early, never partial)
             posted += int(_capitalize_one(snap, d, actor))
 
 
