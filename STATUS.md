@@ -5,7 +5,12 @@
 > work it describes (same-change rule). If you are Claude Code starting a fresh session:
 > read this file first, then `CLAUDE.md`, then follow "How to resume" below.
 
-**Last updated:** 2026-07-18 (evening) · **Branch:** `claude/core-banking-prd-structure-ty3inr`
+**Last updated:** 2026-11-25 (WIP checkpoint) · **Branch:** `claude/core-banking-system-mvp-1ryv2t`
+
+> **WIP:** MVP track (compressed Phases 3–6, authorized 2026-11-25) in progress — ledger,
+> parties, product engine, accounts, transactions, fees, limits, interest and API v1 are
+> implemented and tested; docs, extra test suites and reviews still running. See final
+> update in the next commit.
 
 ## Where the project stands
 

@@ -102,3 +102,19 @@ class TokenFactory:
 def token_factory() -> Iterator[TokenFactory]:
     with override_settings(OIDC_JWKS_STATIC=_jwks()):
         yield TokenFactory()
+
+
+# --- Tenant contexts & ledger seeds -------------------------------------------------------
+
+from next_core.tenancy.context import TenantContext, tenant_context  # noqa: E402
+
+
+def ctx_for(tenant: Tenant) -> TenantContext:
+    return TenantContext(tenant_id=tenant.id, slug=tenant.slug, db_alias=tenant.db_alias)
+
+
+@pytest.fixture()
+def alpha(tenants: dict[str, Tenant]) -> Iterator[TenantContext]:
+    """Tenant 'alpha' context established for the test body."""
+    with tenant_context(ctx_for(tenants["alpha"])) as ctx:
+        yield ctx

@@ -6,4 +6,4 @@ class IamConfig(AppConfig):
     label = "iam"
 
     def ready(self) -> None:
-        from next_core.iam import checks  # noqa: F401 — registers system checks
+        from next_core.iam import checks, schema  # noqa: F401 — registers checks & schema ext

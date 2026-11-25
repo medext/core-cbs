@@ -1,0 +1,189 @@
+"""Business flows through the application services on real PostgreSQL."""
+
+from collections.abc import Callable
+from typing import Any
+
+import pytest
+from django.db import transaction
+
+from next_core.accounts import application as accounts
+from next_core.accounts.models import Account
+from next_core.ledger import application as ledger
+from next_core.ledger.integrity import verify_ledger
+from next_core.platform import clock
+from next_core.platform.errors import (
+    AccountStateInvalidError,
+    AmountExceedsOutstandingError,
+    CreditLimitExceededError,
+    InsufficientFundsError,
+    KycLevelInsufficientError,
+    LimitExceededError,
+    OperationNotAllowedError,
+    ProductRuleViolationError,
+)
+from next_core.platform.money import Money
+from next_core.tenancy.context import TenantContext
+from next_core.transactions import application as txns
+from next_core.transactions.models import TxnState
+from tests import factories as f
+from tests.conftest import TENANT_DBS
+
+pytestmark = [pytest.mark.integration, pytest.mark.django_db(databases=TENANT_DBS)]
+C = txns.CommonFields
+
+
+def book(acc: Account) -> str:
+    b = ledger.get_balance(acc.principal_balance_id)
+    return Money(b.book_balance, b.currency).to_wire()
+
+
+def avail(acc: Account) -> str:
+    b = ledger.get_balance(acc.principal_balance_id)
+    return Money(b.available_balance, b.currency).to_wire()
+
+
+def atomic(fn: Callable[..., Any], *a: Any, **kw: Any) -> Any:
+    with transaction.atomic(using="tenant_alpha"):
+        return fn(*a, **kw)
+
+
+def test_current_account_full_cycle(alpha: TenantContext) -> None:
+    products = f.bootstrap()
+    a, b = f.account(products), f.account(products)
+    f.deposit(a, "1000.00")
+    assert book(a) == "1000.00"
+
+    # transfer via API channel: 0.5% fee (min 4.00 MRU) + 16% tax charged to the sender
+    t = atomic(txns.transfer, a.id, b.id, f.money("200.00"), C(channel="API"), f.TELLER)
+    assert t.state == TxnState.POSTED
+    assert t.fees[0]["amount"] == "4.00" and t.fees[0]["tax"] == "0.64"
+    assert book(a) == "795.36" and book(b) == "200.00"
+
+    # withdrawal: flat 20.00 MRU + 3.20 tax
+    atomic(txns.withdrawal, a.id, f.money("100.00"), C(), f.TELLER)
+    assert book(a) == "672.16"
+
+    with pytest.raises(InsufficientFundsError):
+        atomic(txns.transfer, a.id, b.id, f.money("700.00"), C(channel="BRANCH"), f.TELLER)
+
+    # hold then partial capture
+    h = atomic(txns.place_hold, a.id, f.money("100.00"), 3600, C(), f.TELLER)
+    assert avail(a) == "572.16"
+    hold_id = h.hold.id
+    cap = atomic(txns.capture_hold, hold_id, f.money("60.00"), b.id, f.TELLER)
+    assert cap.state == TxnState.POSTED
+    assert book(a) == "612.16" and avail(a) == "612.16"
+
+    # reversal restores the economic position (principal + fees)
+    rev = atomic(txns.reverse, t.id, "customer dispute", f.TELLER)
+    assert rev.state == TxnState.POSTED
+    assert book(a) == "816.80"  # 612.16 + 200.00 + 4.64 fees
+    assert verify_ledger().ok
+
+
+def test_overdraft_override_within_product_bounds(alpha: TenantContext) -> None:
+    products = f.bootstrap()
+    a = f.account(products, overrides={"overdraft_limit": "500.00"})
+    b = f.account(products)
+    atomic(txns.transfer, a.id, b.id, f.money("400.00"), C(channel="BRANCH"), f.TELLER)
+    assert book(a) == "-400.00" and avail(a) == "100.00"
+    with pytest.raises(InsufficientFundsError):
+        atomic(txns.transfer, a.id, b.id, f.money("100.01"), C(channel="BRANCH"), f.TELLER)
+
+
+def test_daily_limit(alpha: TenantContext) -> None:
+    products = f.bootstrap()
+    a, b = f.account(products, "CURRENT", "EUR"), f.account(products, "CURRENT", "EUR")
+    f.deposit(a, "20000.00")
+    atomic(txns.transfer, a.id, b.id, f.money("9000.00", "EUR"), C(channel="BRANCH"), f.TELLER)
+    with pytest.raises(LimitExceededError):
+        atomic(txns.withdrawal, a.id, f.money("1000.01", "EUR"), C(), f.TELLER)
+
+
+def test_term_deposit_rules_and_interest(alpha: TenantContext) -> None:
+    products = f.bootstrap()
+    td = f.account(products, "TERM_DEPOSIT", overrides={"term_days": 30})
+    with pytest.raises(ProductRuleViolationError):  # below min opening 20000.00 MRU
+        f.deposit(td, "100.00")
+    f.deposit(td, "36500.00")
+    with pytest.raises(ProductRuleViolationError):  # single funding
+        f.deposit(td, "1.00")
+    with pytest.raises(ProductRuleViolationError):  # locked until maturity
+        atomic(txns.withdrawal, td.id, f.money("1.00"), C(), f.TELLER)
+    today = clock.business_date()
+    assert txns.accrue_interest_for(td.id, today, f.TELLER)  # 36500 * 5% / 365 = 5.00
+    assert not txns.accrue_interest_for(td.id, today, f.TELLER)  # idempotent
+    assert td.interest_balance_id is not None and td.maturity_date is not None
+    accrued = ledger.get_balance(td.interest_balance_id)
+    assert accrued.book_balance == 500
+    maturity = td.maturity_date
+    assert txns.capitalize_interest_for(td.id, maturity, f.TELLER)
+    assert book(td) == "36505.00"
+    assert verify_ledger().ok
+
+
+def test_wallet_kyc_tier_cap_and_tiered_fee(alpha: TenantContext) -> None:
+    products = f.bootstrap()
+    w0 = f.account(products, "WALLET", owner=f.party(kyc_level=0))
+    with pytest.raises(ProductRuleViolationError):
+        f.deposit(w0, "8000.01")
+    f.deposit(w0, "8000.00")
+    w1 = f.account(products, "WALLET")
+    t = atomic(txns.transfer, w0.id, w1.id, f.money("1000.00"), C(), f.TELLER)
+    assert t.fees[0]["amount"] == "10.00"  # 1% tier
+    with pytest.raises(OperationNotAllowedError):
+        atomic(txns.disburse, w0.id, w1.id, f.money("1.00"), C(), f.TELLER)
+
+
+def test_kyc_gate_on_opening(alpha: TenantContext) -> None:
+    products = f.bootstrap()
+    with pytest.raises(KycLevelInsufficientError):
+        f.account(products, "PERSONAL_LOAN", owner=f.party(kyc_level=1))
+
+
+def test_loan_disbursement_repayment_and_interest(alpha: TenantContext) -> None:
+    products = f.bootstrap()
+    owner = f.party(kyc_level=2)
+    loan = f.account(products, "PERSONAL_LOAN", owner=owner)  # limit 40000.00 MRU
+    cur = f.account(products, "CURRENT", owner=owner)
+    d = atomic(txns.disburse, loan.id, cur.id, f.money("10000.00"), C(), f.TELLER)
+    assert d.fees[0]["amount"] == "100.00"  # 1% origination, charged to the loan
+    assert book(loan) == "10100.00" and book(cur) == "10000.00"
+    with pytest.raises(CreditLimitExceededError):
+        atomic(txns.disburse, loan.id, cur.id, f.money("29800.00"), C(), f.TELLER)
+    with pytest.raises(AmountExceedsOutstandingError):
+        atomic(txns.repay, cur.id, loan.id, f.money("10100.01"), C(channel="BRANCH"), f.TELLER)
+    atomic(txns.repay, cur.id, loan.id, f.money("100.00"), C(channel="BRANCH"), f.TELLER)
+    assert book(loan) == "10000.00"
+    assert txns.accrue_interest_for(loan.id, clock.business_date(), f.TELLER)
+    # 10000.00 * 12% / 360 = 3.33 (half-even)
+    assert loan.interest_balance_id is not None
+    assert ledger.get_balance(loan.interest_balance_id).book_balance == 333
+    assert verify_ledger().ok
+
+
+def test_closure_rules(alpha: TenantContext) -> None:
+    products = f.bootstrap()
+    a, b = f.account(products), f.account(products)
+    f.deposit(a, "10.00")
+    with pytest.raises(AccountStateInvalidError):
+        accounts.close_account(a.id, "customer request", f.TELLER)
+    atomic(txns.transfer, a.id, b.id, f.money("10.00"), C(channel="BRANCH"), f.TELLER)
+    closed = accounts.close_account(a.id, "customer request", f.TELLER)
+    assert closed.status == "CLOSED"
+    with pytest.raises(AccountStateInvalidError):
+        f.deposit(a, "1.00")
+    assert ledger.statement(a.principal_balance_id)[0]  # history preserved
+
+
+def test_frozen_and_debit_block(alpha: TenantContext) -> None:
+    products = f.bootstrap()
+    a = f.account(products)
+    f.deposit(a, "100.00")
+    accounts.set_blocks(a.id, debit=True, credit=False, reason="court order", actor=f.TELLER)
+    with pytest.raises(AccountStateInvalidError):
+        atomic(txns.withdrawal, a.id, f.money("1.00"), C(), f.TELLER)
+    f.deposit(a, "1.00")  # credits still allowed
+    accounts.change_status(a.id, "FROZEN", "investigation", f.TELLER)
+    with pytest.raises(AccountStateInvalidError):
+        f.deposit(a, "1.00")

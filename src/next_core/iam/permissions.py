@@ -3,7 +3,7 @@
 Permissions are Next Core concepts; the IAM asserts identity and coarse roles only
 (ADR-0008). Every endpoint names its permission explicitly — "authenticated" is never
 sufficient. Role bundles below are seeds; institutions recompose them via configuration
-in later phases (maker-checker arrives with the configuration workflow, Phase 6).
+by configuration (maker-checker is enforced on product configuration — products context).
 """
 
 from typing import Any
@@ -14,14 +14,79 @@ from rest_framework.views import APIView
 
 from next_core.iam.principal import AuthenticatedPrincipal
 
-# --- Registry (append-only; referenced by the authorization matrix doc) -------------------
+# --- Registry (append-only; mirrored by docs/security/authorization-matrix.md) ---------
 AUDIT_READ = "audit:read"
+PARTIES_READ = "parties:read"
+PARTIES_WRITE = "parties:write"
+PRODUCTS_READ = "products:read"
+PRODUCTS_WRITE = "products:write"  # maker
+PRODUCTS_APPROVE = "products:approve"  # checker (never the maker of the same version)
+ACCOUNTS_READ = "accounts:read"
+ACCOUNTS_OPEN = "accounts:open"
+ACCOUNTS_CONTROL = "accounts:control"  # status, blocks, closure
+TRANSACTIONS_READ = "transactions:read"
+TRANSACTIONS_POST = "transactions:post"  # deposits, withdrawals, transfers, loans
+HOLDS_MANAGE = "holds:manage"
+TRANSACTIONS_REVERSE = "transactions:reverse"
+LEDGER_READ = "ledger:read"
+OPERATIONS_RUN = "operations:run"  # EoD steps, integrity runs
 
-PERMISSIONS: frozenset[str] = frozenset({AUDIT_READ})
+PERMISSIONS: frozenset[str] = frozenset(
+    {
+        AUDIT_READ,
+        PARTIES_READ,
+        PARTIES_WRITE,
+        PRODUCTS_READ,
+        PRODUCTS_WRITE,
+        PRODUCTS_APPROVE,
+        ACCOUNTS_READ,
+        ACCOUNTS_OPEN,
+        ACCOUNTS_CONTROL,
+        TRANSACTIONS_READ,
+        TRANSACTIONS_POST,
+        HOLDS_MANAGE,
+        TRANSACTIONS_REVERSE,
+        LEDGER_READ,
+        OPERATIONS_RUN,
+    }
+)
+
+_READS = frozenset(
+    {AUDIT_READ, PARTIES_READ, PRODUCTS_READ, ACCOUNTS_READ, TRANSACTIONS_READ, LEDGER_READ}
+)
+_TELLER = frozenset(
+    {
+        PARTIES_READ,
+        PARTIES_WRITE,
+        PRODUCTS_READ,
+        ACCOUNTS_READ,
+        ACCOUNTS_OPEN,
+        TRANSACTIONS_READ,
+        TRANSACTIONS_POST,
+        HOLDS_MANAGE,
+    }
+)
 
 ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
-    "auditor": frozenset({AUDIT_READ}),
+    "auditor": _READS,
     "platform_ops": frozenset({AUDIT_READ}),
+    "teller": _TELLER,
+    "supervisor": _TELLER | {ACCOUNTS_CONTROL, TRANSACTIONS_REVERSE},
+    "product_manager": frozenset({PRODUCTS_READ, PRODUCTS_WRITE, LEDGER_READ}),
+    "product_approver": frozenset({PRODUCTS_READ, PRODUCTS_APPROVE, LEDGER_READ}),
+    "operations": frozenset(
+        {OPERATIONS_RUN, LEDGER_READ, ACCOUNTS_READ, TRANSACTIONS_READ, PRODUCTS_READ}
+    ),
+    "api_client": frozenset(
+        {
+            PARTIES_READ,
+            PRODUCTS_READ,
+            ACCOUNTS_READ,
+            TRANSACTIONS_READ,
+            TRANSACTIONS_POST,
+            HOLDS_MANAGE,
+        }
+    ),
 }
 
 

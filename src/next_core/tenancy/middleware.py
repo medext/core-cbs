@@ -23,8 +23,9 @@ from next_core.tenancy.exceptions import TenantResolutionError
 TENANT_HEADER = "X-Tenant-ID"
 _SLUG_RE = re.compile(r"^[a-z][a-z0-9_]{1,30}$")
 
-# Paths served without tenant scope (process-level infrastructure only).
-_EXEMPT_PREFIXES = ("/health/",)
+# Paths served without tenant scope (process-level infrastructure and the public API
+# contract — the OpenAPI document contains no tenant data).
+_EXEMPT_PREFIXES = ("/health/", "/api/schema/")
 
 
 def _resolve(request: HttpRequest) -> TenantContext:

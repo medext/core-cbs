@@ -26,6 +26,14 @@ INSTALLED_APPS = [
     "next_core.tenancy",
     "next_core.iam",
     "next_core.audit",
+    "next_core.platform.outbox",
+    "next_core.ledger",
+    "next_core.parties",
+    "next_core.products",
+    "next_core.accounts",
+    "next_core.transactions",
+    "next_core.limits",
+    "drf_spectacular",
     # control_plane is added by SaaS-family profiles only; absent on-premise (ADR-0005).
 ]
 
@@ -41,7 +49,16 @@ MIDDLEWARE = [
 DATABASE_ROUTERS = ["next_core.tenancy.router.TenantDatabaseRouter"]
 
 # Tenancy (see docs/architecture/tenancy-and-deployment.md)
-NEXT_CORE_DATA_PLANE_APPS = ("audit",)
+NEXT_CORE_DATA_PLANE_APPS = (
+    "audit",
+    "outbox",
+    "ledger",
+    "parties",
+    "products",
+    "accounts",
+    "transactions",
+    "limits",
+)
 NEXT_CORE_TENANT_RESOLVER = env("NEXT_CORE_TENANT_RESOLVER", default="header")
 NEXT_CORE_TENANT_DIRECTORY = env("NEXT_CORE_TENANT_DIRECTORY", default="control")
 
@@ -80,6 +97,42 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAdminUser"],
     "DEFAULT_PAGINATION_CLASS": "next_core.platform.api.BoundedPageNumberPagination",
     "PAGE_SIZE": 50,
+    # One RFC 9457 problem-details shape for every error (docs/api/error-catalog.md).
+    "EXCEPTION_HANDLER": "next_core.platform.errors.exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "UNAUTHENTICATED_USER": None,
+}
+
+# OpenAPI 3.1 contract (OD-6): generated from the code, committed as docs/api/openapi.json and
+# contract-tested for drift.
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Next Core API",
+    "DESCRIPTION": (
+        "Core banking API v1. Every data-plane call carries a tenant (X-Tenant-ID header in "
+        "SaaS-dev/staging) and an OAuth2 bearer token. Financial writes require an "
+        "Idempotency-Key header. Amounts are decimal strings in major units with the "
+        "currency exponent (ADR-0004). Errors are RFC 9457 problem details."
+    ),
+    "VERSION": "1.0.0",
+    "OAS_VERSION": "3.1.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "SERVE_AUTHENTICATION": [],
+    "SCHEMA_PATH_PREFIX": r"/api/v1",
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SORT_OPERATIONS": False,
+    "APPEND_COMPONENTS": {
+        "securitySchemes": {"oidc": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}}
+    },
+    "ENUM_NAME_OVERRIDES": {
+        "PartyStatusEnum": "next_core.parties.models.PartyStatus",
+        "PartyTypeEnum": "next_core.parties.models.PartyType",
+        "KycStatusEnum": "next_core.parties.models.KycStatus",
+        "AccountStatusEnum": "next_core.accounts.models.AccountStatus",
+        "VersionStatusEnum": "next_core.products.models.VersionStatus",
+        "TxnStateEnum": "next_core.transactions.models.TxnState",
+        "TxnTypeEnum": "next_core.transactions.models.TxnType",
+    },
 }
 
 LANGUAGE_CODE = "en"
