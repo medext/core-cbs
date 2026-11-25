@@ -127,3 +127,20 @@ API exposes the state verbatim plus: `is_terminal`, `funds_reserved`, `journal_e
 `reversal_of` / `reversed_by`, and the transition history endpoint. Status polling is safe;
 webhooks emit `transaction.state.changed` events (at-least-once, consumers dedupe on
 transition id).
+
+## As built — database enforcement (MVP track)
+
+The state machine above is enforced in code (`LEGAL` map in
+`src/next_core/transactions/application.py`, contract-tested against this diagram) and backed
+by database triggers in each tenant database:
+
+| Trigger (migration) | Enforces |
+|---|---|
+| `business_transaction_terminal_guard` (`transactions/0002_history_guards`) | Terminal states (REJECTED, SETTLED, REVERSED, VOIDED, FAILED) are final — no state change out of them; `amount_minor`, `currency` and `type` are immutable |
+| `business_transaction_no_delete`, `txn_hold_no_delete`, `idempotency_record_no_delete` (`0002`) | Business transactions, holds and idempotency records are never deleted |
+| `txn_transition_append_only` (`0002`) | `txn_state_transition` is append-only (no UPDATE/DELETE) |
+| `business_transaction_reversal_four_eyes` (`0003_reversal_four_eyes`) | A REVERSAL transaction must be initiated by a different principal than the transaction it reverses (four-eyes rule) |
+| `ledger_entry_source_exists` (`0004_entry_source_exists`) | A journal entry with `source_type = 'TRANSACTION'` must reference an existing business transaction of the same tenant (invariant 15) |
+
+Business rejections are recorded as REJECTED transactions with `rejection_code`
+(CHECK `txn_rejection_has_code`); amounts are strictly positive (CHECK `txn_amount_positive`).

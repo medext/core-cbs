@@ -128,3 +128,15 @@ ambiguous (business transaction vs. accounting transaction vs. database transact
 | **Exception (recon)** | An unmatched or mismatched item requiring investigation/adjustment. |
 | **Statement** | Periodic, product-rule-driven account activity document. |
 | **Runbook** | Step-by-step operational procedure for a defined scenario. |
+
+## Product engine & operations (MVP track)
+
+| Term | Definition |
+|---|---|
+| **Four-eyes rule** | For reversals: the principal who initiated a business transaction cannot reverse it (enforced in code and by a DB trigger). Distinct from *maker-checker*, which governs configuration changes (product versions). |
+| **Interest accrual** | The daily recognition of interest owed (deposits) or earned (loans) into the account's accrued-interest ledger balance, computed on the principal book balance as of that day (value-dated), one day at a time from a per-account checkpoint. |
+| **Capitalization** | Moving accrued interest into the principal ledger balance on a due date (monthly on the 1st, or at maturity); only interest accrued with a value date before the due date is moved. |
+| **Funds-enforced balance** | A ledger balance whose available balance may not decrease below zero (book − held − pending debit + overdraft limit), checked under row lock and by the DB funds-floor trigger. |
+| **Overdraw allowance** | The posting-service flag (`allow_overdraw`) that suspends the funds floor for one posting call; used only by reversals and balance-policy changes (documented exception to invariant 18). |
+| **Simulation** | Executing an operation through the real code path (locks, rules, fees, limits, funds checks) inside a database transaction that is always rolled back; nothing persists and no event is emitted. |
+

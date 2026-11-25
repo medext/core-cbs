@@ -101,7 +101,8 @@ Materialized under `src/next_core/` in addition to the Phase 2 packages: `platfo
 rules, where needed), `application.py` (use cases and the ports other contexts call),
 `models.py`, `api.py`, `urls.py`, rather than `domain/` and `application/` packages and a
 separate `ports.py`: at MVP size a package per layer is empty ceremony. A context switches to
-packages when a module outgrows ~800 lines. `admin.py` is not shipped (no back-office yet —
+packages when a module outgrows ~800 lines. **Known exception:** `transactions/application.py`
+(≈1,250 lines) already exceeds it; the split into a package is registered as OD-51. `admin.py` is not shipped (no back-office yet —
 OD-17). Not created yet (no owning work): `interest/` (interest computation lives in
 `pricing/interest.py`, orchestration in `transactions`), `reconciliation/`, `business_day/`,
 `statements/` (statement read model is in `ledger.application.statement`), `notifications/`

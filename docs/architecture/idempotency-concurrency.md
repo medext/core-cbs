@@ -12,12 +12,13 @@
 ### Model
 
 ```text
-IdempotencyRecord(
+IdempotencyRecord(                                -- as built: table idempotency_record
   tenant_id, operation, client_id, key,          -- UNIQUE together (scope)
   request_hash,                                   -- canonicalized payload SHA-256
   status: PROCESSING | COMPLETED | FAILED_FINAL,
-  response_snapshot, journal_entry_ref,
-  created_at, completed_at, retention_class
+  response_status, response_body,                 -- the exact HTTP answer replayed on retry
+  transaction_id,                                 -- business transaction produced (if any)
+  created_at, completed_at
 )
 ```
 
@@ -34,7 +35,7 @@ IdempotencyRecord(
 3. Conflict → load existing row:
    - `request_hash` differs → **409 `IDEMPOTENCY_CONFLICT`** (invariant 12).
    - `COMPLETED` → return stored response (invariant 11).
-   - `PROCESSING` → another in-flight execution owns it → **retryable 409/`RETRY_LATER`**
+   - `PROCESSING` → another in-flight execution owns it → **retryable 409 `REQUEST_IN_PROGRESS`**
      (client backs off; we never run two executions).
    - `FAILED_FINAL` → return stored final failure (deterministic replay of terminal errors).
 4. On success: store response snapshot + entry ref, mark COMPLETED — same transaction as the
@@ -47,7 +48,10 @@ The client retries with the same key → conflict path returns the stored respon
 **only** safe client behavior and is documented in the API standards ("always retry with the
 same key; never generate a new key for a retry").
 
-### Retention
+### Retention *(design — not built; OD-50)*
+
+As built, idempotency records are **never deleted** (DB trigger `idempotency_record_no_delete`)
+and carry no retention class; the expiry/archival policy below is design intent only.
 
 - Financial write records: retained ≥ dispute/audit horizon (default 10 years — OD-8; never
   hard-deleted within legal horizon; archived per data-retention policy).
@@ -137,13 +141,16 @@ entries; reconstruction matches projections.
 
 Implemented in `transactions.application`, `accounts.application`, `limits.application`,
 `ledger.application` and `platform.outbox.service`; reviewed by the
-`postgres-concurrency-reviewer` (APPROVE-WITH-CONDITIONS; fixes below not yet re-verified by
-the reviewer).
+`postgres-concurrency-reviewer` (APPROVE-WITH-CONDITIONS; the fixes below were
+re-verified by the reviewer on 2026-11-25 — all three reviewers APPROVE-WITH-CONDITIONS, see
+the roadmap's *Review outcomes*).
 
 - **Idempotency gate**: `execute_idempotent` — `INSERT … ON CONFLICT DO NOTHING RETURNING id`
   into `idempotency_record` (unique tenant, operation, client, key), then the business work in
   a savepoint; a business rejection rolls the savepoint back and records a REJECTED
   transaction + `FAILED_FINAL` record in the same transaction (replayed identically, OD-35).
+  Retryable domain errors (e.g. `REQUEST_IN_PROGRESS`) are **never stored**: they are re-raised,
+  the idempotency row rolls back with everything else, and a same-key retry re-executes.
   In synchronous mode a concurrent duplicate blocks on the unique index and then reads the
   committed record, so `PROCESSING` is never observed.
 - **Global lock order**: accounts (`SELECT … FOR UPDATE ORDER BY id`) → hold row → business

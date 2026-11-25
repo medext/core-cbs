@@ -8,8 +8,8 @@
 ## Context
 
 The PRD requires a product engine able to configure any financial product (deposits, wallets,
-term deposits, loans) per tenant without code changes, comparable in ambition to Mambu and
-Thought Machine. Master-prompt §13 and the security rules forbid executing tenant-supplied
+term deposits, loans) per tenant without code changes. Its design lineage draws on the
+configuration model of Mambu and the product-as-contract model of Thought Machine. Master-prompt §13 and the security rules forbid executing tenant-supplied
 code; invariant 21 forbids configuration changes from rewriting historical behavior; the
 maker-checker rule applies to all configuration changes. OD-11 asked for the formalism.
 

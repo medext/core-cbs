@@ -132,7 +132,7 @@ commit (ADR-0007).
 ## Implementation (as built, MVP track 2026-11-25)
 
 Code: `src/next_core/ledger/` (`domain.py` pure rules, `models.py`, `application.py` posting
-service, `integrity.py`, migrations `0001` + `0002_ledger_db_enforcement`).
+service, `integrity.py`, migrations `0001_initial`, `0002_ledger_db_enforcement`, `0003_entry_txid_guard`, `0004_force_created_txid`).
 
 ### Tables
 
@@ -146,7 +146,7 @@ service, `integrity.py`, migrations `0001` + `0002_ledger_db_enforcement`).
 
 No foreign key uses `ON DELETE CASCADE`.
 
-### Database triggers (ledger migrations `0002`, `0003`; transactions migration `0004`)
+### Database triggers (ledger migrations `0002`–`0004`; transactions migration `0004`)
 
 | Trigger | Enforces |
 |---|---|
@@ -157,6 +157,7 @@ No foreign key uses `ON DELETE CASCADE`.
 | `ledger_balance_guard` | Balance rows: no DELETE; UPDATE requires the writer flag; identity columns (GL, currency, normal side, owner, purpose) immutable; totals monotonic; `version` must increase by exactly 1; **funds floor** — for funds-enforced balances, an update that makes available < 0 *and* lower than before is refused unless the transaction-local `next_core.allow_overdraw = 'on'` (set only for reversals and policy changes) (invariants 8/18) |
 | `ledger_balance_born_empty` | Balances are inserted with all projection fields at 0 |
 | `ledger_posting_currency` (function `ledger_posting_shape`, redefined by `0003_entry_txid_guard`) | Additionally: postings may only be added to an entry **within the DB transaction that created it**. Each entry stores `created_txid bigint DEFAULT txid_current()` (top-level transaction id, identical inside savepoints); an INSERT into an already-committed entry is refused (invariants 5/6) |
+| `ledger_entry_force_txid` (`0004_force_created_txid`) | BEFORE INSERT on entries: forces `created_txid := txid_current()`, so a client cannot supply a forged transaction id to bypass the append guard above |
 | `ledger_entry_source_exists` (transactions migration `0004_entry_source_exists`) | A journal entry with `source_type = 'TRANSACTION'` must reference an existing `business_transaction` of the same tenant (invariant 15). The coupling lives in the transactions context so the ledger kernel keeps no dependency on it; violation → `RESOURCE_NOT_FOUND` |
 
 This replaces, for the MVP, the DB-role separation of OD-14 (still advisable in production

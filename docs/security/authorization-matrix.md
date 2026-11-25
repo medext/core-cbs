@@ -50,7 +50,7 @@ finer ownership model (branch/portfolio/customer self-service) in the MVP (OD-36
 
 | Operation | API scope | Permission | Roles (default bundles) | Object-level condition | Maker-checker | Audit evidence |
 |---|---|---|---|---|---|---|
-| `GET /api/v1/parties`, `GET /parties/{id}` | bearer | `parties:read` | teller, supervisor, auditor, api_client | Tenant scope; 404 masking | none | — (read) |
+| `GET /api/v1/parties`, `GET /parties/{id}` | bearer | `parties:read` | teller, supervisor, loan_officer, auditor, api_client | Tenant scope; 404 masking | none | — (read) |
 | `POST /parties`, `PATCH /parties/{id}` | bearer | `parties:write` | teller, supervisor | Tenant scope | none | outbox `party.created` / `party.updated` |
 | `POST /parties/{id}/status`, `POST /parties/{id}/kyc` | bearer | `parties:write` | teller, supervisor | Tenant scope; legal status transitions only | none (OD-36 follow-up: KYC maker-checker) | outbox `party.status.changed`, `party.kyc.recorded` |
 
@@ -67,8 +67,8 @@ finer ownership model (branch/portfolio/customer self-service) in the MVP (OD-36
 
 | Operation | API scope | Permission | Roles (default bundles) | Object-level condition | Maker-checker | Audit evidence |
 |---|---|---|---|---|---|---|
-| List/get account, balances, statement, limits, history | bearer | `accounts:read` | teller, supervisor, operations, auditor, api_client | Tenant scope; 404 masking | none | — |
-| Open account | bearer | `accounts:open` | teller, supervisor | Tenant scope; party ACTIVE + KYC level ≥ product minimum | none | audit `account.opened`; outbox `account.opened` |
+| List/get account, balances, statement, limits, history | bearer | `accounts:read` | teller, supervisor, loan_officer, operations, auditor, api_client | Tenant scope; 404 masking | none | — |
+| Open account | bearer | `accounts:open` | teller, supervisor, loan_officer | Tenant scope; party ACTIVE + KYC level ≥ product minimum | none | audit `account.opened`; outbox `account.opened` |
 | Change status (freeze/unfreeze/dormant/close), set blocks | bearer | `accounts:control` | supervisor | Tenant scope; closure requires zero book figures and no holds | none (follow-up) | audit + outbox `account.status.changed`; append-only status history |
 
 ## Transactions, holds, loans (MVP track)
@@ -79,7 +79,7 @@ finer ownership model (branch/portfolio/customer self-service) in the MVP (OD-36
 | Loan disbursement — `POST /loans/{id}/disbursements` | bearer + `Idempotency-Key` | `loans:disburse` | supervisor, loan_officer | Tenant scope; product credit limit | none (credit decision kept off channel clients) | transitions history; outbox `transaction.state.changed`, `journal_entry.posted`; idempotency record |
 | Place / capture / release hold | bearer + `Idempotency-Key` | `holds:manage` | teller, supervisor, api_client | Tenant scope | none | same |
 | Reverse a POSTED transaction | bearer + `Idempotency-Key` | `transactions:reverse` | supervisor | Tenant scope; no closed account | **four-eyes rule**: the original's initiator cannot reverse it (`403 MAKER_CHECKER_VIOLATION`; DB trigger `business_transaction_reversal_four_eyes`). Full request→approve workflow deferred (OD-41) | audit `transaction.reversed`; outbox `journal_entry.reversed` |
-| List/get transactions, transitions, holds; simulate | bearer | `transactions:read` | teller, supervisor, operations, auditor, api_client | Tenant scope | none | — |
+| List/get transactions, transitions, holds; simulate | bearer | `transactions:read` | teller, supervisor, loan_officer, operations, auditor, api_client | Tenant scope | none | — |
 
 ## Ledger & operations (MVP track)
 

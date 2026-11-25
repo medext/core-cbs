@@ -136,7 +136,7 @@ transactions.
 | `GET /api/v1/ledger/trial-balance` | `ledger:read` | — | per GL × currency debit/credit totals and net; per-currency `balanced` flag |
 | `GET /api/v1/ledger/entries/{id}` | `ledger:read` | — | journal entry with postings, `reversal_of`, `reversed_by` |
 | `POST /api/v1/operations/integrity-runs` | `operations:run` | — | 201 integrity run: reconstruct projections from postings inside one REPEATABLE READ snapshot, check balanced entries |
-| `POST /api/v1/operations/eod` | `operations:run` | — (idempotent by design: checkpoints + deterministic ids) | `business_date` (optional, default today; **a future date → `400 VALIDATION_ERROR`**) → `{business_date, holds_expired, hold_reconciliation_findings[], interest: {accounts_considered, accrued, capitalized}}`. `interest.accrued` counts accrual **days** posted (day-by-day catch-up from each account's checkpoint); `hold_reconciliation_findings` lists accounts whose `held_amount` ≠ Σ ACTIVE holds (empty when consistent). |
+| `POST /api/v1/operations/eod` | `operations:run` | — (idempotent by design: checkpoints + deterministic ids) | `business_date` (optional, default today; **a future date → `400 VALIDATION_ERROR`**) → `{business_date, holds_expired, hold_reconciliation_findings[], interest: {accounts_considered, accrued, capitalized}}`. `interest.accrued` counts accrual **days** posted (day-by-day catch-up from each account's checkpoint); `hold_reconciliation_findings` lists accounts whose `held_amount` ≠ Σ ACTIVE holds (empty when consistent). Errors: `400 VALIDATION_ERROR` (future date), `409 CONFLICT_STATE` (an account's accrual is more than 400 days behind — catch up in shorter runs). |
 
 ## Audit
 

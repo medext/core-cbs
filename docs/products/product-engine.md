@@ -86,7 +86,7 @@ VALIDATION_ERROR`.
 |---|---|---|---|
 | `schema_version` | int | no (default 1) | Only `1` is supported. |
 | `category` | enum | yes | `CURRENT_ACCOUNT`, `SAVINGS`, `TERM_DEPOSIT`, `WALLET`, `LOAN`, `INTERNAL`. Cannot change across versions. |
-| `balance_side` | enum | yes | `LIABILITY` (deposits; customer balance is credit-normal) or `ASSET` (lending; debit-normal). |
+| `balance_side` | enum | yes | `LIABILITY` (deposits; the customer principal ledger balance is credit-normal) or `ASSET` (lending; debit-normal). |
 | `currencies` | list | yes | Non-empty, unique, supported ISO-4217 codes (`MRU`, `XOF`, `EUR`, `USD`, `TND`). |
 | `gl_mapping` | object | yes | Role → GL account code. Required roles: `principal`, `cash`, `fee_income`, `tax_payable`. Optional: `accrued_interest`, `interest_expense`, `interest_income`. Unknown roles rejected. At approval every code must exist and be active, and **every role is type-checked**: `principal` and `accrued_interest` = the product side (LIABILITY or ASSET); `cash` = ASSET; `fee_income`, `interest_income` = INCOME; `interest_expense` = EXPENSE; `tax_payable` = LIABILITY. A mismatch is a `400 VALIDATION_ERROR` at approval. |
 | `parameters` | object | no | Name (Python identifier, ≤ 40 chars) → parameter spec (below). |
@@ -214,8 +214,12 @@ purpose `ACCRUED_INTEREST` mapped to `accrued_interest`.
   run through *d - 1*, and the entry's `value_date` is *d*. A per-account checkpoint
   (`interest_capitalized_through`) makes it resumable: missed due dates are caught up **in
   order**, and during an accrual catch-up the due capitalizations are applied in date order
-  before the next day accrues (compounding is never skipped). Never for a future business
-  date. Evidence: `test_monthly_capitalization_catches_up_in_order_and_never_early`.
+  before the next day accrues (compounding is never skipped). At or after maturity the gate
+  is "accrual has run through *maturity - 1*" (accrual stops there), so `AT_MATURITY` never
+  capitalizes a partial figure. A `MONTHLY` policy keeps running after maturity if a product
+  combines it with a term (the seed term deposit uses `AT_MATURITY`). Never for a future
+  business date. Evidence: `test_monthly_capitalization_catches_up_in_order_and_never_early`,
+  `test_term_deposit_rules_and_interest`.
 - A run during the day uses the intra-day balance for *today* — run EoD after the day is
   closed (OD-45).
 - Runs per account in its own DB transaction with a **deterministic business-transaction id**

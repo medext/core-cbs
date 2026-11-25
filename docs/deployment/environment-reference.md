@@ -34,6 +34,7 @@
 | `NEXT_CORE_TENANT_RESOLVER` | no | `header` (forced `static` in onprem) | `header` = X-Tenant-ID (dev/test/staging behind trusted gateway); `static` = on-prem single tenant |
 | `NEXT_CORE_TENANT_DIRECTORY` | no | `control` (forced `static` in onprem) | Tenant lookup source: control-plane registry vs. static config |
 | `NEXT_CORE_TENANT_ID` / `NEXT_CORE_TENANT_SLUG` | **yes** (onprem) | none — boot fails | The on-premise tenant identity (UUID + slug) |
+| `NEXT_CORE_SINGLE_DATABASE` (setting, not env) | — | `True` in onprem only | Both aliases share one physical database and one migration ledger; the router lets every app migrate on either alias (see [on-prem installation](onprem-installation.md)) |
 | `OIDC_ISSUER_TEMPLATE` | yes for authenticated APIs | empty (auth fails closed) | Per-tenant issuer, e.g. `https://kc/realms/{tenant}` |
 | `OIDC_AUDIENCE` | no | `next-core` | Expected token audience |
 | `OIDC_JWKS_URL_TEMPLATE` | no | `{issuer}/protocol/openid-connect/certs` | JWKS location (Keycloak-style default) |

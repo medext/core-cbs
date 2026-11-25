@@ -136,7 +136,7 @@ Suspense balances trend to zero; aged items are reconciliation exceptions.
 ## Interest & accrual accounting (architecture reserved, Phase 8)
 
 Daily accrual: `DEBIT 5100 Interest expense / CREDIT 2130 Accrued interest payable`;
-capitalization: `DEBIT 2130 / CREDIT 2110 customer balance`; withholding at capitalization:
+capitalization: `DEBIT 2130 / CREDIT 2110 customer principal ledger balance`; withholding at capitalization:
 `CREDIT 2410 WHT payable`. Retroactive rate corrections: compensating entries only
 (invariant 7). Day-count, rounding, and tiering plans per product version.
 
